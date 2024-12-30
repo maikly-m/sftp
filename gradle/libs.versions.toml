@@ -7,6 +7,7 @@ androidPickerWheelPicker = "4.1.14"
 barcodeScanning = "17.3.0"
 commonsNet = "3.9.0"
 compressor = "3.0.1"
+eventbus = "3.3.1"
 ftpserverCore = "1.2.0"
 jsch = "0.1.55"
 materialDialogsCore = "3.3.0"
@@ -52,6 +53,7 @@ auto-value-gson = { module = "com.ryanharter.auto.value:auto-value-gson", versio
 androidpicker-common = { module = "com.github.gzu-liyujiang.AndroidPicker:Common", version.ref = "androidPickerCommon" }
 androidpicker-wheelpicker = { module = "com.github.gzu-liyujiang.AndroidPicker:WheelPicker", version.ref = "androidPickerWheelPicker" }
 commons-net = { module = "commons-net:commons-net", version.ref = "commonsNet" }
+eventbus = { module = "org.greenrobot:eventbus", version.ref = "eventbus" }
 ftpserver-core = { module = "org.apache.ftpserver:ftpserver-core", version.ref = "ftpserverCore" }
 jsch = { module = "com.jcraft:jsch", version.ref = "jsch" }
 mina-core = { module = "org.apache.mina:mina-core", version.ref = "minaCore" }

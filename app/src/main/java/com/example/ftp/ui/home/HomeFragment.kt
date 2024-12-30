@@ -30,14 +30,6 @@ class HomeFragment : Fragment() {
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
-
-        binding.btnServer.setOnClickListener {
-            findNavController().navigate(R.id.action_home2server)
-        }
-
-        binding.btnClient.setOnClickListener {
-            findNavController().navigate(R.id.action_home2client)
-        }
         // --------------
         binding.btnServerSftp.setOnClickListener {
             findNavController().navigate(R.id.action_home2server_sftp)
@@ -45,10 +37,6 @@ class HomeFragment : Fragment() {
 
         binding.btnClientSftp.setOnClickListener {
             findNavController().navigate(R.id.action_home2client_sftp)
-        }
-
-        System.getProperties().forEach{
-            Timber.d("it.key=${it.key}, it.value=${it.value}")
         }
 
         return root

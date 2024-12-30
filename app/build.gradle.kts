@@ -103,6 +103,8 @@ dependencies {
     implementation(libs.sshd.core)
     implementation(libs.mina.core)
 
+    implementation(libs.eventbus)
+
 
     // debug的时候导入，需要日志
     debugImplementation(libs.slf4j.api) // SLF4J API

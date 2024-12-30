@@ -1,36 +1,37 @@
 package com.example.ftp.ui.sftp
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.ftp.ui.home.CommonNetFtp
+import com.example.ftp.service.SftpClientService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
+
 
 class ClientSftpViewModel : ViewModel() {
 
-    private val _text = MutableLiveData<String>().apply {
-        value = "This is notifications Fragment"
-    }
-    val text: LiveData<String> = _text
+    private var sftpClient: SftpClientService? = null
 
     fun uploadFile(
-        ftpServer: String,
-        ftpPort: Int,
-        username: String,
-        password: String,
         localFilePath: String,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            CommonNetSftp().uploadFileByCommonNet(
-                ftpServer = ftpServer,
-                ftpPort = ftpPort,
-                username = username,
-                password = password,
-                localFilePath = localFilePath
-            )
+
+            sftpClient?.getClient()?.uploadFile(localFilePath,  "/001/"+File(localFilePath).name)
         }
 
+    }
+
+    fun listFile(
+        localFilePath: String,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            sftpClient?.getClient()?.listFiles(localFilePath)
+        }
+
+    }
+
+    fun setClient(sftpClientService: SftpClientService): Unit {
+        sftpClient = sftpClientService
     }
 }

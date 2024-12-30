@@ -1,11 +1,15 @@
 package com.example.ftp.ui.sftp
 
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.IBinder
 import android.provider.Settings
 import android.text.TextUtils
 import android.view.LayoutInflater
@@ -15,13 +19,16 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.example.ftp.databinding.FragmentServerBinding
 import com.example.ftp.databinding.FragmentServerSftpBinding
-import com.example.ftp.ui.home.ServerViewModel
+import com.example.ftp.service.SftpServerService
+import com.example.ftp.utils.getLocalIpAddress
 import com.example.ftp.utils.grantExternalStorage
+import timber.log.Timber
 
 class ServerSftpFragment : Fragment() {
 
+    private var sftpServerService: SftpServerService? = null
+    private var isBound: Boolean = false
     private lateinit var viewModel: ServerSftpViewModel
     private var _binding: FragmentServerSftpBinding? = null
 
@@ -102,12 +109,33 @@ class ServerSftpFragment : Fragment() {
 
     // 启动 FTP 服务器
     private fun startFtpServer() {
-        viewModel.startServer()
+        if (isBound){
+            return
+        }
+        // 绑定服务
+        Timber.d("startFtpServer ..")
+        val intent = Intent(requireContext(), SftpServerService::class.java)
+        requireContext().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        viewModel.stopServer()
+        requireContext().unbindService(serviceConnection)
+    }
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            Timber.d("serviceConnection ..")
+            val binder = service as SftpServerService.LocalBinder
+            sftpServerService = binder.getService()
+            viewModel._text.postValue(getLocalIpAddress(requireContext()))
+            isBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            sftpServerService = null
+            isBound = false
+        }
     }
 }

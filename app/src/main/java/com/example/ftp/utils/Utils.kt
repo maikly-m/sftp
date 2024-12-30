@@ -13,6 +13,8 @@ import android.graphics.Paint
 import android.graphics.Point
 import android.graphics.Rect
 import android.media.MediaScannerConnection
+import android.net.wifi.WifiInfo
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -380,5 +382,20 @@ fun grantExternalStorage(activity: FragmentActivity, block: (b:Boolean)-> Unit):
     }else{
         block(true)
     }
+}
+
+fun getLocalIpAddress(context: Context): String {
+    val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+    val connectionInfo: WifiInfo = wifiManager.connectionInfo
+    val ipAddress = connectionInfo.ipAddress
+    return intToIp(ipAddress)
+}
+
+// 将 int 类型的 IP 地址转换为字符串格式
+fun intToIp(i: Int): String {
+    return (i and 0xFF).toString() + "." +
+            ((i shr 8) and 0xFF) + "." +
+            ((i shr 16) and 0xFF) + "." +
+            (i shr 24 and 0xFF)
 }
 
