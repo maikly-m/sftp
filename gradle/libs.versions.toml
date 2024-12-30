@@ -1,0 +1,96 @@
+[versions]
+agp = "8.6.0"
+autoValue = "1.9"
+autoValueGson = "1.3.1"
+androidPickerCommon = "4.1.14"
+androidPickerWheelPicker = "4.1.14"
+barcodeScanning = "17.3.0"
+commonsNet = "3.9.0"
+compressor = "3.0.1"
+ftpserverCore = "1.2.0"
+jsch = "0.1.55"
+materialDialogsCore = "3.3.0"
+glide = "4.15.1"
+jsoup = "1.15.3"
+media3Exoplayer = "1.5.0"
+minaCore = "2.1.6"
+slf4jApi = "2.0.9"
+sshdSftp = "2.7.0"
+zxingCore = "3.4.1"
+kotlin = "1.9.0"
+coreKtx = "1.15.0"
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+appcompat = "1.7.0"
+material = "1.12.0"
+constraintlayout = "2.2.0"
+lifecycleLivedataKtx = "2.8.7"
+lifecycleViewmodelKtx = "2.8.7"
+navigationFragmentKtx = "2.8.4"
+navigationUiKtx = "2.8.4"
+permissionx = "1.8.1"
+retrofit = "2.11.0"
+retrofitConverterGson = "2.9.0"
+gson = "2.10.1"
+loggingInterceptor = "4.12.0"
+timber = "5.0.1"
+wechatSdkAndroid = "6.8.0"
+zxingAndroidEmbedded = "4.1.0"
+cameraCamera2 = "1.4.1"
+cameraCore = "1.4.1"
+cameraLifecycle = "1.4.1"
+
+[libraries]
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraCore" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3Exoplayer" }
+androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Exoplayer" }
+auto-value = { module = "com.google.auto.value:auto-value", version.ref = "autoValue" }
+auto-value-gson = { module = "com.ryanharter.auto.value:auto-value-gson", version.ref = "autoValueGson" }
+androidpicker-common = { module = "com.github.gzu-liyujiang.AndroidPicker:Common", version.ref = "androidPickerCommon" }
+androidpicker-wheelpicker = { module = "com.github.gzu-liyujiang.AndroidPicker:WheelPicker", version.ref = "androidPickerWheelPicker" }
+commons-net = { module = "commons-net:commons-net", version.ref = "commonsNet" }
+ftpserver-core = { module = "org.apache.ftpserver:ftpserver-core", version.ref = "ftpserverCore" }
+jsch = { module = "com.jcraft:jsch", version.ref = "jsch" }
+mina-core = { module = "org.apache.mina:mina-core", version.ref = "minaCore" }
+mlkit-barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcodeScanning" }
+compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
+compressor = { module = "id.zelory:compressor", version.ref = "compressor" }
+material-dialogs-core = { module = "com.afollestad.material-dialogs:core", version.ref = "materialDialogsCore" }
+glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4jApi" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4jApi" }
+sshd-core = { module = "org.apache.sshd:sshd-core", version.ref = "sshdSftp" }
+sshd-sftp = { module = "org.apache.sshd:sshd-sftp", version.ref = "sshdSftp" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxingCore" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtx" }
+androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
+androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
+androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigationUiKtx" }
+
+guolindev-permissionx = { group = "com.guolindev.permissionx", name = "permissionx", version.ref = "permissionx" }
+squareup-retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+squareup-retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref ="retrofitConverterGson" }
+google-gson = { group = "com.google.code.gson", name = "gson", version.ref ="gson" }
+loggingInterceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref ="loggingInterceptor" }
+jakewharton-timber = { group = "com.jakewharton.timber", name = "timber", version.ref ="timber" }
+tencent-mm-opensdk = { group = "com.tencent.mm.opensdk", name = "wechat-sdk-android", version.ref ="wechatSdkAndroid" }
+zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxingAndroidEmbedded" }
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraCore" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraLifecycle" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+
+
