@@ -24,6 +24,8 @@ import android.view.Window
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
+import com.example.ftp.provider.GetProvider
+import com.example.ftp.utils.thread.AppExecutors
 import com.permissionx.guolindev.PermissionX
 import id.zelory.compressor.Compressor
 import id.zelory.compressor.constraint.format
@@ -397,5 +399,11 @@ fun intToIp(i: Int): String {
             ((i shr 8) and 0xFF) + "." +
             ((i shr 16) and 0xFF) + "." +
             (i shr 24 and 0xFF)
+}
+
+fun showToast(s: String): Unit {
+    AppExecutors.globalAppExecutors()?.mainThread()?.execute{
+        ToastUtil.showToast(GetProvider.get().context, s)
+    }
 }
 

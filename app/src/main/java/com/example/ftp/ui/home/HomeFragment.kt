@@ -36,7 +36,7 @@ class HomeFragment : Fragment() {
         }
 
         binding.btnClientSftp.setOnClickListener {
-            findNavController().navigate(R.id.action_home2client_sftp)
+            findNavController().navigate(R.id.action_home2client_settings)
         }
 
         return root

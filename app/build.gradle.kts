@@ -72,7 +72,6 @@ dependencies {
     implementation(libs.jakewharton.timber)
 //    implementation(libs.tencent.mm.opensdk)
     implementation(libs.auto.value.gson) // AutoValue Gson 扩展库
-//    implementation(project(":SlideVerify"))
     annotationProcessor(libs.auto.value)  // AutoValue 注解处理器
     annotationProcessor(libs.auto.value.gson)   // Gson 扩展的注解处理器
     implementation(libs.zxing.core)  // ZXing 核心库

@@ -1,20 +1,26 @@
 package com.example.ftp.service
 
 import android.text.TextUtils
-import com.example.ftp.event.MessageEvent
+import com.example.ftp.event.ClientMessageEvent
+import com.example.ftp.provider.GetProvider
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
 import com.jcraft.jsch.SftpException
+import com.jcraft.jsch.UserInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.greenrobot.eventbus.EventBus
 import timber.log.Timber
 import java.io.File
 import java.io.FileInputStream
-import java.net.SocketTimeoutException
+import java.io.InputStream
+import java.util.Vector
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 class SftpClientModel {
 
@@ -23,7 +29,7 @@ class SftpClientModel {
     private var _ftpPort: Int = 2222
     private var _ftpServer: String = ""
 
-    // private val coroutineScope = CoroutineScope(Dispatchers.IO) // 在IO线程中运行协程
+    private val coroutineScope = CoroutineScope(Dispatchers.IO) // 在IO线程中运行协程
     private var session: Session? = null
     private var channelSftp: ChannelSftp? = null
     private var initLockInt = AtomicInteger(0)
@@ -47,17 +53,33 @@ class SftpClientModel {
         session = jsch.getSession(username, ftpServer, ftpPort)
         // 设置密码
         session!!.setPassword(password)
-        // 关闭严格的主机密钥检查（只用于测试环境）
-        session!!.setConfig("StrictHostKeyChecking", "no")
+        // 关闭严格的主机密钥检查（只用于测试环境）no
+        // yes no ask
+        // session!!.setConfig("StrictHostKeyChecking", "no")
+        session!!.setConfig("StrictHostKeyChecking", "ask")
+        // 设置用户交互信息处理
+        session!!.userInfo = CustomUserInfo()
+        // 创建 KnownHosts 实例，设置自定义路径
+        val homeDir = "${GetProvider.get().context.filesDir}/user/home"
+        val fileDir = File(homeDir)
+        if (!fileDir.exists()){
+            fileDir.mkdirs()
+        }
+        val known_hosts_path = "${homeDir}/known_hosts"
+        val known_host_file = File(known_hosts_path)
+        if (!known_host_file.exists() || known_host_file.isDirectory){
+            known_host_file.createNewFile()
+        }
+        jsch.setKnownHosts(known_hosts_path)
+
         // 10s
         session!!.timeout = 10_000
         try {
             session!!.connect()
             channelSftp = session!!.openChannel("sftp") as ChannelSftp
             channelSftp!!.connect()
-            Timber.d("SftpClientModel connect")
+            EventBus.getDefault().post(ClientMessageEvent.SftpConnected("连接成功"))
         } catch (e: Exception) {
-            Timber.e("SftpClientModel connect error")
             e.printStackTrace()
             channelSftp?.disconnect()
             session?.disconnect()
@@ -65,7 +87,7 @@ class SftpClientModel {
             session = null
             if (e is JSchException){
                 e.cause?.message?.contains("java.net.SocketTimeoutException").let {
-                    EventBus.getDefault().post(MessageEvent("连接异常"))
+                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail("连接异常"))
                 }
             }
         }finally {
@@ -79,21 +101,7 @@ class SftpClientModel {
         channelSftp = null
         session = null
         initLockInt.set(0)
-    }
-
-    // 上传文件（增）
-    fun uploadFile(localFilePath: String, remoteFilePath: String) {
-        checkConnect {
-            try {
-                val fileInputStream = FileInputStream(localFilePath)
-                channelSftp?.put(fileInputStream, remoteFilePath)
-                fileInputStream.close()
-                Timber.d("SFTP %s", "文件上传成功")
-            } catch (e: SftpException) {
-                e.printStackTrace()
-                Timber.d("SFTP %s", "文件上传失败: ${e.message}")
-            }
-        }
+        EventBus.getDefault().post(ClientMessageEvent.SftpDisconnect("连接断开"))
     }
 
     private fun checkConnect(block: () -> Unit) {
@@ -117,6 +125,82 @@ class SftpClientModel {
         if (!TextUtils.isEmpty(_username) && !TextUtils.isEmpty(_password)){
             Timber.d("reconnect ...")
             connect(_ftpServer, _ftpPort, _username, _password)
+        }
+    }
+
+    suspend fun pwd(): String{
+        return suspendCoroutine { continuation ->
+            try {
+                checkConnect {
+                    try {
+                        val path = channelSftp?.pwd()?:""
+                        Timber.d("pwd ${path}")
+                        continuation.resume(path)
+                    } catch (e: SftpException) {
+                        e.printStackTrace()
+                        continuation.resumeWithException(e)
+                    }
+                }
+            } catch (e: Exception) {
+                // 捕获异常并通过 continuation 恢复异常状态
+                continuation.resumeWithException(e)
+            }
+        }
+    }
+
+    suspend fun cd(path: String){
+        suspendCoroutine { continuation ->
+            try {
+                checkConnect {
+                    try {
+                        channelSftp?.cd(path)
+                        Timber.d("cd ${path}")
+                        continuation.resume(path)
+                    } catch (e: SftpException) {
+                        e.printStackTrace()
+                        continuation.resumeWithException(e)
+                    }
+                }
+            } catch (e: Exception) {
+                // 捕获异常并通过 continuation 恢复异常状态
+                continuation.resumeWithException(e)
+            }
+        }
+    }
+
+    // 上传文件（增）
+    fun uploadFile(localFilePath: String, remoteFilePath: String) {
+        checkConnect {
+            try {
+                val fileInputStream = FileInputStream(localFilePath)
+                channelSftp?.put(fileInputStream, remoteFilePath)
+                fileInputStream.close()
+                Timber.d("SFTP %s", "文件上传成功")
+            } catch (e: SftpException) {
+                e.printStackTrace()
+                Timber.d("SFTP %s", "文件上传失败: ${e.message}")
+            }
+        }
+    }
+    // 上传文件（增）
+    suspend fun uploadFileInputStream(inputStream: InputStream, remoteFilePath: String): Boolean{
+        return suspendCoroutine { continuation ->
+            try {
+                checkConnect {
+                    try {
+                        channelSftp?.put(inputStream, remoteFilePath)
+                        continuation.resume(true)
+                    } catch (e: SftpException) {
+                        e.printStackTrace()
+                        continuation.resumeWithException(e)
+                    }finally {
+                        inputStream.close()
+                    }
+                }
+            } catch (e: Exception) {
+                // 捕获异常并通过 continuation 恢复异常状态
+                continuation.resumeWithException(e)
+            }
         }
     }
 
@@ -147,19 +231,53 @@ class SftpClientModel {
     }
 
     // 列出目录内容（查）
-    fun listFiles(remoteDirectory: String) {
-        checkConnect {
-            Timber.d("SFTP, listFiles")
+    suspend fun listFiles(remoteDirectory: String): Vector<*>? {
+        return suspendCoroutine { continuation ->
             try {
-                val fileList = channelSftp?.ls(remoteDirectory)
-                fileList?.forEach { file ->
-                    Timber.d("SFTP, 文件/目录: ${file}")
+                checkConnect {
+                    Timber.d("SFTP, listFiles")
+                    try {
+                        val list = channelSftp?.ls(remoteDirectory)
+                        continuation.resume(list)
+                    } catch (e: SftpException) {
+                        e.printStackTrace()
+                        continuation.resumeWithException(e)
+                    }
                 }
-            } catch (e: SftpException) {
-                e.printStackTrace()
-                Timber.d("SFTP, 列出目录失败: ${e.message}")
+            } catch (e: Exception) {
+                // 捕获异常并通过 continuation 恢复异常状态
+                continuation.resumeWithException(e)
             }
         }
+
     }
 
+    inner class CustomUserInfo : UserInfo {
+        override fun getPassphrase(): String? {
+            return null
+        }
+
+        override fun getPassword(): String? {
+            return null
+        }
+
+        override fun promptPassword(message: String?): Boolean {
+            return false
+        }
+
+        override fun promptPassphrase(message: String?): Boolean {
+            return false
+        }
+
+        override fun promptYesNo(message: String?): Boolean {
+            // 通过返回 true 来接受主机的公钥
+            Timber.d("promptYesNo: ${message}")
+            return true  // 允许接受公钥
+        }
+
+        override fun showMessage(message: String?) {
+            // 用于显示消息
+            Timber.d("showMessage: ${message}")
+        }
+    }
 }

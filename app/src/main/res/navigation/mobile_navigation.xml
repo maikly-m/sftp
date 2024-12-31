@@ -10,10 +10,18 @@
         android:name="com.example.ftp.ui.home.HomeFragment"
         android:label="@string/title_home"
         tools:layout="@layout/fragment_home" >
-        <action android:id="@+id/action_home2client_sftp"
-            app:destination="@+id/navigation_client_sftp"/>
+        <action android:id="@+id/action_home2client_settings"
+            app:destination="@+id/navigation_client_settings"/>
+
         <action android:id="@+id/action_home2server_sftp"
             app:destination="@+id/navigation_server_sftp"/>
+    </fragment>
+    <fragment
+        android:id="@+id/navigation_client_settings"
+        android:name="com.example.ftp.ui.home.ClientSettingsFragment"
+        tools:layout="@layout/fragment_client_settings" >
+        <action android:id="@+id/action_client_settings2client_sftp"
+            app:destination="@+id/navigation_client_sftp"/>
     </fragment>
     <fragment
         android:id="@+id/navigation_server_sftp"
