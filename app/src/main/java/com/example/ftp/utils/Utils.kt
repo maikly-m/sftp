@@ -5,6 +5,7 @@ import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -13,11 +14,14 @@ import android.graphics.Paint
 import android.graphics.Point
 import android.graphics.Rect
 import android.media.MediaScannerConnection
+import android.net.Uri
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.util.Size
 import android.view.View
 import android.view.Window
@@ -26,6 +30,9 @@ import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.utils.thread.AppExecutors
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.WriterException
+import com.google.zxing.qrcode.QRCodeWriter
 import com.permissionx.guolindev.PermissionX
 import id.zelory.compressor.Compressor
 import id.zelory.compressor.constraint.format
@@ -336,6 +343,43 @@ fun getScreenSize(context: Context): Size {
     return size
 }
 
+fun grantCamera(activity: FragmentActivity, block: (b:Boolean)-> Unit): Unit {
+    val permissions = mutableListOf<String>()
+    if (activity.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED
+    ) {
+        permissions.add(Manifest.permission.CAMERA)
+    }
+    if (permissions.size > 0) {
+        PermissionX.init(activity)
+            .permissions(permissions)
+            .setDialogTintColor(Color.parseColor("#1972e8"), Color.parseColor("#8ab6f5"))
+            .onExplainRequestReason { scope, deniedList, beforeRequest ->
+                val message = "PermissionX needs following permissions to continue"
+                scope.showRequestReasonDialog(deniedList, message, "Allow", "Deny")
+            }
+            .onForwardToSettings { scope, deniedList ->
+                val message = "Please allow following permissions in settings"
+                scope.showForwardToSettingsDialog(deniedList, message, "Allow", "Deny")
+            }
+            .request { allGranted, grantedList, deniedList ->
+                if (allGranted) {
+                    Toast.makeText(activity, "All permissions are granted", Toast.LENGTH_SHORT)
+                        .show()
+                    block(true)
+                } else {
+                    Toast.makeText(
+                        activity,
+                        "The following permissions are denied：$deniedList",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    block(false)
+                }
+            }
+    }else{
+        block(true)
+    }
+}
+
 fun grantExternalStorage(activity: FragmentActivity, block: (b:Boolean)-> Unit): Unit {
     val permissions = mutableListOf<String>()
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -404,6 +448,92 @@ fun intToIp(i: Int): String {
 fun showToast(s: String): Unit {
     AppExecutors.globalAppExecutors()?.mainThread()?.execute{
         ToastUtil.showToast(GetProvider.get().context, s)
+    }
+}
+
+fun getFileNameFromPath(uri: Uri): String? {
+    return getPathFromUri(GetProvider.get().context, uri)?.substringAfterLast("/")
+    //return uri.path?.substringAfterLast("/")
+}
+
+fun getFileSize(context: Context, uri: Uri): Long? {
+    return when (uri.scheme) {
+        "content" -> {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (sizeIndex != -1) cursor.getLong(sizeIndex) else null
+                } else {
+                    null
+                }
+            }
+        }
+        "file" -> {
+            uri.path?.let { path ->
+                File(path).length()
+            }
+        }
+        else -> null // 其他类型 Uri 可能需要自定义处理
+    }
+}
+
+fun getPathFromUri(context: Context, uri: Uri): String? {
+    val scheme = uri.scheme
+    return when {
+        // 如果 URI 是文件类型的 URI（如 content:// ）
+        ContentResolver.SCHEME_CONTENT == scheme -> {
+            if (DocumentsContract.isDocumentUri(context, uri)) {
+                // 处理 DocumentProvider 类型的 URI（如 Google Drive）
+                if (isExternalStorageDocument(uri)) {
+                    val docId = DocumentsContract.getDocumentId(uri)
+                    val split = docId.split(":")
+                    val type = split[0]
+                    if ("primary" == type) {
+                        return context.getExternalFilesDir(null)?.path + "/" + split[1]
+                    }
+                }
+            } else {
+                // 处理其他的 content 类型的 URI
+                val projection = arrayOf(MediaStore.Images.Media.DATA)
+                val cursor: Cursor? = context.contentResolver.query(uri, null, null, null, null)
+                cursor?.use {
+                    val columnIndex = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+                    if (it.moveToFirst()) {
+                        return it.getString(columnIndex)
+                    }
+                }
+            }
+            null
+        }
+        // 如果是文件类型 URI（如 file://）
+        ContentResolver.SCHEME_FILE == scheme -> uri.path
+        else -> null
+    }
+}
+
+// 检查是否是外部存储文档
+fun isExternalStorageDocument(uri: Uri): Boolean {
+    return "com.android.externalstorage.documents" == uri.authority
+}
+
+fun generateQRCode(content: String): Bitmap? {
+    val size = 500 // QR code size in pixels
+    val qrCodeWriter = QRCodeWriter()
+
+    return try {
+        val bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, size, size)
+        val width = bitMatrix.width
+        val height = bitMatrix.height
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                bitmap.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+            }
+        }
+        bitmap
+    } catch (e: WriterException) {
+        e.printStackTrace()
+        null
     }
 }
 

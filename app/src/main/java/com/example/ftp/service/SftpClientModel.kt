@@ -8,6 +8,7 @@ import com.jcraft.jsch.JSch
 import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
 import com.jcraft.jsch.SftpException
+import com.jcraft.jsch.SftpProgressMonitor
 import com.jcraft.jsch.UserInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +42,7 @@ class SftpClientModel {
         password: String
     ) {
         Timber.d("SftpClientModel connect start")
-        if (initLockInt.get() != 0){
+        if (initLockInt.get() != 0) {
             return
         }
         initLockInt.set(1)
@@ -62,12 +63,12 @@ class SftpClientModel {
         // 创建 KnownHosts 实例，设置自定义路径
         val homeDir = "${GetProvider.get().context.filesDir}/user/home"
         val fileDir = File(homeDir)
-        if (!fileDir.exists()){
+        if (!fileDir.exists()) {
             fileDir.mkdirs()
         }
         val known_hosts_path = "${homeDir}/known_hosts"
         val known_host_file = File(known_hosts_path)
-        if (!known_host_file.exists() || known_host_file.isDirectory){
+        if (!known_host_file.exists() || known_host_file.isDirectory) {
             known_host_file.createNewFile()
         }
         jsch.setKnownHosts(known_hosts_path)
@@ -85,12 +86,15 @@ class SftpClientModel {
             session?.disconnect()
             channelSftp = null
             session = null
-            if (e is JSchException){
+            if (e is JSchException) {
                 e.cause?.message?.contains("java.net.SocketTimeoutException").let {
                     EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail("连接异常"))
                 }
+                e.cause?.message?.contains("java.net.NoRouteToHostException").let {
+                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail("连接的IP异常"))
+                }
             }
-        }finally {
+        } finally {
             initLockInt.set(0)
         }
     }
@@ -105,7 +109,7 @@ class SftpClientModel {
     }
 
     private fun checkConnect(block: () -> Unit) {
-        if (initLockInt.get() != 0){
+        if (initLockInt.get() != 0) {
             Timber.d("init ...")
             return
         }
@@ -122,18 +126,18 @@ class SftpClientModel {
     }
 
     private fun reconnect() {
-        if (!TextUtils.isEmpty(_username) && !TextUtils.isEmpty(_password)){
+        if (!TextUtils.isEmpty(_username) && !TextUtils.isEmpty(_password)) {
             Timber.d("reconnect ...")
             connect(_ftpServer, _ftpPort, _username, _password)
         }
     }
 
-    suspend fun pwd(): String{
+    suspend fun pwd(): String {
         return suspendCoroutine { continuation ->
             try {
                 checkConnect {
                     try {
-                        val path = channelSftp?.pwd()?:""
+                        val path = channelSftp?.pwd() ?: ""
                         Timber.d("pwd ${path}")
                         continuation.resume(path)
                     } catch (e: SftpException) {
@@ -148,7 +152,7 @@ class SftpClientModel {
         }
     }
 
-    suspend fun cd(path: String){
+    suspend fun cd(path: String) {
         suspendCoroutine { continuation ->
             try {
                 checkConnect {
@@ -182,18 +186,23 @@ class SftpClientModel {
             }
         }
     }
+
     // 上传文件（增）
-    suspend fun uploadFileInputStream(inputStream: InputStream, remoteFilePath: String): Boolean{
+    suspend fun uploadFileInputStream(
+        inputStream: InputStream,
+        remoteFilePath: String,
+        l: SftpProgressMonitor
+    ): Boolean {
         return suspendCoroutine { continuation ->
             try {
                 checkConnect {
                     try {
-                        channelSftp?.put(inputStream, remoteFilePath)
+                        channelSftp?.put(inputStream, remoteFilePath, l)
                         continuation.resume(true)
                     } catch (e: SftpException) {
                         e.printStackTrace()
                         continuation.resumeWithException(e)
-                    }finally {
+                    } finally {
                         inputStream.close()
                     }
                 }
@@ -235,7 +244,7 @@ class SftpClientModel {
         return suspendCoroutine { continuation ->
             try {
                 checkConnect {
-                    Timber.d("SFTP, listFiles")
+                    Timber.d("SFTP, listFiles remoteDirectory=${remoteDirectory}")
                     try {
                         val list = channelSftp?.ls(remoteDirectory)
                         continuation.resume(list)
@@ -250,6 +259,31 @@ class SftpClientModel {
             }
         }
 
+    }
+
+    // 下载文件
+    suspend fun downloadFile(
+        src: String,
+        dst: String,
+        l: SftpProgressMonitor
+    ): Boolean {
+        return suspendCoroutine { continuation ->
+            try {
+                checkConnect {
+                    try {
+                        channelSftp?.get(src, dst, l)
+                        continuation.resume(true)
+                    } catch (e: SftpException) {
+                        e.printStackTrace()
+                        continuation.resumeWithException(e)
+                    } finally {
+                    }
+                }
+            } catch (e: Exception) {
+                // 捕获异常并通过 continuation 恢复异常状态
+                continuation.resumeWithException(e)
+            }
+        }
     }
 
     inner class CustomUserInfo : UserInfo {

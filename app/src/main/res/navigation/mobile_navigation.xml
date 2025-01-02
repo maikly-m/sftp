@@ -22,6 +22,8 @@
         tools:layout="@layout/fragment_client_settings" >
         <action android:id="@+id/action_client_settings2client_sftp"
             app:destination="@+id/navigation_client_sftp"/>
+        <action android:id="@+id/action_client_settings2scan_code"
+            app:destination="@+id/navigation_scan_code"/>
     </fragment>
     <fragment
         android:id="@+id/navigation_server_sftp"
@@ -31,4 +33,8 @@
         android:id="@+id/navigation_client_sftp"
         android:name="com.example.ftp.ui.sftp.ClientSftpFragment"
         tools:layout="@layout/fragment_client_sftp" />
+    <fragment
+        android:id="@+id/navigation_scan_code"
+        android:name="com.example.ftp.ui.home.ScanCodeFragment"
+        tools:layout="@layout/fragment_scan_code" />
 </navigation>

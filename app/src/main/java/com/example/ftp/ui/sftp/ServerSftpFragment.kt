@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -21,8 +22,12 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.ftp.databinding.FragmentServerSftpBinding
 import com.example.ftp.service.SftpServerService
+import com.example.ftp.utils.generateQRCode
 import com.example.ftp.utils.getLocalIpAddress
 import com.example.ftp.utils.grantExternalStorage
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.WriterException
+import com.google.zxing.qrcode.QRCodeWriter
 import timber.log.Timber
 
 class ServerSftpFragment : Fragment() {
@@ -52,6 +57,13 @@ class ServerSftpFragment : Fragment() {
         viewModel.text.observe(viewLifecycleOwner){
             if (!TextUtils.isEmpty(it)) {
                 binding.textServer.text = it
+                // 要生成二维码的内容
+                val qrContent = it
+                // 调用生成二维码的方法
+                val bitmap = generateQRCode(qrContent)
+                if (bitmap != null) {
+                    binding.ivCode.setImageBitmap(bitmap)
+                }
             } else {
                 binding.textServer.text = "null"
             }
@@ -59,8 +71,6 @@ class ServerSftpFragment : Fragment() {
 
         return root
     }
-
-
     // 权限请求相关
     private val storagePermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->

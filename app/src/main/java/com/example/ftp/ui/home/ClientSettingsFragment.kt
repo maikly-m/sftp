@@ -14,12 +14,15 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.setFragmentResult
+import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.ftp.R
 import com.example.ftp.databinding.FragmentClientSettingsBinding
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.utils.MySPUtil
+import com.example.ftp.utils.grantCamera
 import com.example.ftp.utils.grantExternalStorage
 import com.example.ftp.utils.showToast
 import org.greenrobot.eventbus.EventBus
@@ -49,7 +52,7 @@ class ClientSettingsFragment : Fragment() {
         _binding = FragmentClientSettingsBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        binding.layoutTitleBrowser.ivBack.setOnClickListener {
+        binding.layoutTitle.ivBack.setOnClickListener {
             findNavController().popBackStack()
         }
 
@@ -106,13 +109,35 @@ class ClientSettingsFragment : Fragment() {
             }
         }
 
+        binding.btnScan.setOnClickListener {
+            // 扫码
+            grantCamera(requireActivity()){
+                if (it) {
+                    findNavController().navigate(R.id.action_client_settings2scan_code)
+                } else {
+
+                }
+            }
+        }
+
         binding.btnConnect.setOnClickListener {
             // 保存配置
             if (!TextUtils.isEmpty(serverIp)){
-                MySPUtil.getInstance().setServerIp(serverIp)
+                MySPUtil.getInstance().serverIp = serverIp
                 findNavController().navigate(R.id.action_client_settings2client_sftp)
             }else{
                 showToast("ip 没有填写")
+            }
+        }
+
+        setFragmentResultListener("scan"){ _, bundle ->
+            bundle.getString("scanResult")?.let {
+                if (!TextUtils.isEmpty(it)){
+                    Timber.d("scanResult ${it}")
+                    binding.etIp.setText(it)
+                    serverIp = it
+                    MySPUtil.getInstance().serverIp = it
+                }
             }
         }
     }

@@ -2,21 +2,22 @@ package com.example.ftp.ui.sftp
 
 import android.app.Activity
 import android.content.ComponentName
-import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
-import android.provider.MediaStore
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -24,21 +25,26 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.ftp.R
 import com.example.ftp.databinding.FragmentClientSftpBinding
 import com.example.ftp.databinding.ItemListFileBinding
+import com.example.ftp.databinding.ItemListNameBinding
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.service.SftpClientService
+import com.example.ftp.ui.format
 import com.example.ftp.utils.MySPUtil
+import com.example.ftp.utils.getFileNameFromPath
+import com.example.ftp.utils.getFileSize
 import com.example.ftp.utils.showToast
 import com.jcraft.jsch.ChannelSftp
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import timber.log.Timber
-import java.io.FileInputStream
 import java.io.InputStream
 import java.util.Vector
 
 class ClientSftpFragment : Fragment() {
 
+    private var progressDialog: AlertDialog? =null
+    private lateinit var nameFileAdapter: ListNameAdapter
     private lateinit var listFileAdapter: ListFileAdapter
     private lateinit var d: Vector<ChannelSftp.LsEntry>
     private var serverIp: String? = null
@@ -102,7 +108,18 @@ class ClientSftpFragment : Fragment() {
                 listFileAdapter.items.addAll(d)
                 //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
                 listFileAdapter.notifyDataSetChanged()
-                binding.layoutTitleBrowser.tvName.text = viewModel.getCurrentFilePath()
+
+
+                nameFileAdapter.items.clear()
+                val p = viewModel.getCurrentFilePath()
+                if (TextUtils.equals("/", p)){
+                    nameFileAdapter.items.add("")
+                }else if (p.endsWith("/")) {
+                    nameFileAdapter.items.addAll(p.removeSuffix("/").split("/"))
+                }else{
+                    nameFileAdapter.items.addAll(p.split("/"))
+                }
+                nameFileAdapter.notifyDataSetChanged()
             } else {
 
             }
@@ -116,16 +133,37 @@ class ClientSftpFragment : Fragment() {
             } else {
                 showToast("上传失败")
             }
+            progressDialog?.dismiss()
+        }
+
+        viewModel.uploadFileProgress.observe(viewLifecycleOwner){
+            if (it > 0f) {
+                //show
+                if (progressDialog != null && progressDialog!!.isShowing){
+                    progressDialog!!.setTitle("上传中... ${it.format(2)}"+"%")
+                    return@observe
+                }
+                val builder = AlertDialog.Builder(requireContext())
+                progressDialog = builder.setTitle("上传中...").create()
+                progressDialog?.show()
+            } else {
+
+            }
         }
     }
 
     private fun initView() {
-
-        val recyclerView = binding.rv
+        val rvName = binding.layoutTitleBrowser.rvName
         // 设置 RecyclerView 的适配器
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        rvName.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        nameFileAdapter = ListNameAdapter(mutableListOf(""))
+        rvName.adapter = nameFileAdapter
+
+        val rv = binding.rv
+        // 设置 RecyclerView 的适配器
+        rv.layoutManager = LinearLayoutManager(requireContext())
         listFileAdapter = ListFileAdapter(Vector<ChannelSftp.LsEntry>())
-        recyclerView.adapter = listFileAdapter
+        rv.adapter = listFileAdapter
 
         binding.btnUpload.setOnClickListener {
             openFile()
@@ -140,7 +178,6 @@ class ClientSftpFragment : Fragment() {
         }
     }
 
-    // 获取系统相册图片
     private val pickFileLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
@@ -164,24 +201,79 @@ class ClientSftpFragment : Fragment() {
             }
         }
 
-    private fun handleSelectedFiles(imageUris: List<Uri>) {
-        val inputStreams = mutableListOf<InputStream>()
-        val names = mutableListOf<String>()
-        imageUris.forEach { uri ->
-            // 打开文件输入流
-            requireContext().contentResolver.openInputStream(uri)?.let {
-                inputStreams.add(it)
+    private fun handleSelectedFiles(fileUris: MutableList<Uri>) {
+        // check remote the same name files
+        val sameNames = mutableListOf<Uri>()
+        viewModel.listFileData?.forEach {
+            fileUris.forEach { uri ->
                 val p = getFileNameFromPath(uri)?:"${System.currentTimeMillis()}_未知文件"
-                val fullPath = viewModel.getCurrentFilePath().removeSuffix("/")+"/"+p
-                names.add(fullPath)
+                if (TextUtils.equals(it.filename, p)){
+                    // the same file has been found
+                    sameNames.add(uri)
+                }
             }
         }
 
-        viewModel.uploadFileInputStream(sftpClientService, inputStreams, names)
-    }
+        val block = {
+            val inputStreams = mutableListOf<InputStream>()
+            val names = mutableListOf<String>()
+            var allSize = 0L
+            var hadSize = true
+            fileUris.forEach { uri ->
+                // 打开文件输入流
+                val size = getFileSize(requireContext(), uri)
+                if (size != null){
+                    allSize += size
+                }else{
+                    hadSize = false
+                }
+                requireContext().contentResolver.openInputStream(uri)?.let {
+                    inputStreams.add(it)
+                    val p = getFileNameFromPath(uri)?:"${System.currentTimeMillis()}_未知文件"
+                    val fullPath = viewModel.getCurrentFilePath().removeSuffix("/")+"/"+p
+                    names.add(fullPath)
+                }
+            }
+            if (!hadSize){
+                // 只要有一个文件是拿不到大小的，就不计算文件大小
+                allSize = 0
+            }
 
-    fun getFileNameFromPath(uri: Uri): String? {
-        return uri.path?.substringAfterLast("/")
+            if (fileUris.size == 0){
+                // none of files to be uploaded
+                showToast("没有需要上传的文件")
+            }else{
+                fileUris.forEachIndexed { i, uri ->
+                    Timber.d("uploadFileInputStream fileUris[${i}] = ${uri}")
+                    Timber.d("uploadFileInputStream names[${i}] = ${names[i]}")
+                }
+                viewModel.uploadFileInputStream(sftpClientService, inputStreams, names, allSize, fileUris.size)
+            }
+
+        }
+
+        if (sameNames.size > 0){
+            // show dialog
+            AlertDialog.Builder(requireContext())
+                .setTitle("提示")
+                .setMessage("有相同的文件，是否覆盖")
+                .setPositiveButton("确定") { dialog, _ ->
+                    block()
+                    dialog.dismiss()
+                }.setNegativeButton("取消") { dialog, _ ->
+                    // remove the same name files
+                    val b = fileUris.removeAll(sameNames)
+                    Timber.d("removeAll ${b}")
+                    Timber.d("fileUris.size ${fileUris.size}")
+                    block()
+                    dialog.dismiss()
+                }
+                .setCancelable(false)
+                .create()
+                .show()
+        }else{
+            block()
+        }
     }
 
     private fun openFile() {
@@ -245,6 +337,50 @@ class ClientSftpFragment : Fragment() {
         }
     }
 
+    inner class ListNameAdapter(val items: MutableList<String>) : RecyclerView.Adapter<ListNameAdapter.ViewHolder>() {
+        inner class ViewHolder(private val binding: ItemListNameBinding) : RecyclerView.ViewHolder(binding.root) {
+
+            init {
+            }
+
+            fun bind(item: String) {
+                binding.executePendingBindings()
+                binding.tvName.text = item
+                binding.cl.setOnClickListener {
+
+                    if (items.size - 1 > adapterPosition && adapterPosition > 0){
+                        val subList = items.subList(1, adapterPosition+1)
+                        val path = "/"+subList.joinToString("/")
+                        viewModel.listFile(sftpClientService, path)
+                    }else{
+                        viewModel.listFile(sftpClientService, "/")
+                    }
+                }
+                if (items.first() == item){
+                    // 第一项
+                    binding.tvName.text = "sdcard"
+                }
+
+                if (items.last() == item) {
+                    // 最后一项
+                    binding.tvName.setTextColor(Color.BLUE)
+                }else{
+                    binding.tvName.setTextColor(Color.RED)
+                }
+            }
+        }
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val binding = ItemListNameBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            return ViewHolder(binding)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.bind(items[position])
+        }
+
+        override fun getItemCount(): Int = items.size
+    }
+
     inner class ListFileAdapter(val items: Vector<ChannelSftp.LsEntry>) : RecyclerView.Adapter<ListFileAdapter.ViewHolder>() {
         inner class ViewHolder(private val binding: ItemListFileBinding) : RecyclerView.ViewHolder(binding.root) {
 
@@ -259,7 +395,6 @@ class ClientSftpFragment : Fragment() {
                 if (item.attrs.isDir) {
                     binding.ivIcon.setImageResource(R.drawable.format_folder_smartlock)
                     binding.cl.setOnClickListener {
-                        // next
                         val fullPath = viewModel.getCurrentFilePath().removeSuffix("/")+"/"+item.filename
                         viewModel.listFile(sftpClientService, fullPath)
                     }
