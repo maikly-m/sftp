@@ -175,21 +175,6 @@ class SftpClientModel {
     }
 
     // 上传文件（增）
-    fun uploadFile(localFilePath: String, remoteFilePath: String) {
-        checkConnect {
-            try {
-                val fileInputStream = FileInputStream(localFilePath)
-                channelSftp?.put(fileInputStream, remoteFilePath)
-                fileInputStream.close()
-                Timber.d("SFTP %s", "文件上传成功")
-            } catch (e: SftpException) {
-                e.printStackTrace()
-                Timber.d("SFTP %s", "文件上传失败: ${e.message}")
-            }
-        }
-    }
-
-    // 上传文件（增）
     suspend fun uploadFileInputStream(
         inputStream: InputStream,
         remoteFilePath: String,
@@ -199,6 +184,11 @@ class SftpClientModel {
             try {
                 checkConnect {
                     try {
+                        // check dir
+                        Timber.d("uploadFileInputStream dst=${remoteFilePath}")
+                        channelSftp?.let {
+                            ensureDirectoryExists(it, remoteFilePath.removeSuffix("/").substringBeforeLast("/"))
+                        }
                         channelSftp?.put(inputStream, remoteFilePath, l)
                         continuation.resume(true)
                     } catch (e: SftpException) {
@@ -214,16 +204,46 @@ class SftpClientModel {
             }
         }
     }
-
-    // 删除文件（删）
-    fun deleteFile(remoteFilePath: String) {
+    fun deleteFile(remotePath: String) {
         checkConnect {
             try {
-                channelSftp?.rm(remoteFilePath)
-                Timber.d("SFTP %s", "文件删除成功")
+                channelSftp?.rm(remotePath)
+                Timber.d("已删除文件: $remotePath")
             } catch (e: SftpException) {
                 e.printStackTrace()
                 Timber.d("SFTP %s", "文件删除失败: ${e.message}")
+            }
+        }
+    }
+    // 删除文件夹（删）
+    fun deleteDir(remotePath: String) {
+        checkConnect {
+            try {
+                val entries = channelSftp?.ls(remotePath)
+                entries?.let {
+                    for (entry in entries) {
+                        if (entry is ChannelSftp.LsEntry) {
+                            val filePath = "$remotePath/${entry.filename}"
+                            if (entry.filename == "." || entry.filename == "..") {
+                                continue // 跳过当前目录和父目录
+                            }
+                            if (entry.attrs.isDir) {
+                                // 递归删除子目录
+                                deleteFile(filePath)
+                            } else {
+                                // 删除文件
+                                channelSftp?.rm(filePath)
+                                Timber.d("已删除文件: $filePath")
+                            }
+                        }
+                    }
+                }
+                // 删除当前空目录
+                channelSftp?.rmdir(remotePath)
+                Timber.d("已删除目录: $remotePath")
+            } catch (e: SftpException) {
+                e.printStackTrace()
+                Timber.d("SFTP %s", "文件夹删除失败: ${e.message}")
             }
         }
     }
@@ -322,6 +342,32 @@ class SftpClientModel {
             } catch (e: Exception) {
                 // 捕获异常并通过 continuation 恢复异常状态
                 continuation.resumeWithException(e)
+            }
+        }
+    }
+
+    private fun ensureDirectoryExists(channelSftp: ChannelSftp, remotePath: String) {
+        val directories = remotePath.split("/").filter { it.isNotEmpty() } // 按斜杠分割路径并过滤空元素
+        var currentPath = ""
+
+        for (dir in directories) {
+            currentPath = if (currentPath.isEmpty()) "/$dir" else "$currentPath/$dir"
+
+            try {
+                // 检查目录是否存在
+                val attrs = channelSftp.lstat(currentPath)
+                if (!attrs.isDir) {
+                    throw SftpException(ChannelSftp.SSH_FX_FAILURE, "$currentPath 存在但不是文件夹")
+                }
+            } catch (e: SftpException) {
+                if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+                    // 当前目录不存在，创建
+                    channelSftp.mkdir(currentPath)
+                    Timber.d("目录创建成功: $currentPath")
+                } else {
+                    // 处理其他异常
+                    throw e
+                }
             }
         }
     }

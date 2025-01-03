@@ -46,6 +46,8 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
 
 /**
  * 全屏显示，状态栏及导航栏均隐藏,均不占位
@@ -535,5 +537,61 @@ fun generateQRCode(content: String): Bitmap? {
         e.printStackTrace()
         null
     }
+}
+
+
+fun formatTimeWithSimpleDateFormat(timestamp: Long): String {
+    val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss") // 定义格式
+    val date = Date(timestamp) // 将 Long 转为 Date
+    return format.format(date) // 格式化为字符串
+}
+
+fun normalizeFilePath(filePath: String): String {
+    // 使用正则表达式替换多个连续的 "/" 为单个 "/"
+    return filePath.replace(Regex("/{2,}"), "/")
+}
+
+fun ensureLocalDirectoryExists(path: String): Boolean {
+    val file = File(path)
+    return if (file.exists()) {
+        if (file.isDirectory) {
+            true // 路径已存在且是文件夹
+        } else {
+            false // 路径已存在但不是文件夹
+        }
+    } else {
+        file.mkdirs() // 创建文件夹，包括中间路径
+    }
+}
+fun isFileNameValid(fileName: String): Boolean {
+    // 定义文件名合法性规则的正则表达式
+    val regex = Regex("^[^<>:\"/\\\\|?*]+$") // 文件名不能包含 < > : " / \ | ? *
+    val maxLength = 255 // 通常文件名的最大长度为 255 个字符
+
+    return fileName.isNotBlank() && // 文件名不能为空
+            fileName.length <= maxLength && // 文件名不能超过最大长度
+            regex.matches(fileName) // 文件名必须符合正则表达式规则
+}
+fun isFolderNameValid(folderName: String): Boolean {
+    // 检测文件夹名是否为空或全是空白字符
+    if (folderName.isBlank()) {
+        return false
+    }
+
+    // 定义非法字符的正则表达式
+    val invalidCharacters = Regex("[\\\\/:*?\"<>|]")
+
+    // 检测是否包含非法字符
+    if (invalidCharacters.containsMatchIn(folderName)) {
+        return false
+    }
+
+    // 检测长度是否符合（通常文件夹名称长度不要超过255个字符）
+    if (folderName.length > 255) {
+        return false
+    }
+
+    // 文件夹名称合规
+    return true
 }
 

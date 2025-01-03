@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ftp.service.SftpClientService
+import com.example.ftp.utils.normalizeFilePath
 import com.example.ftp.utils.showToast
 import com.example.ftp.utils.thread.SingleLiveEvent
 import com.jcraft.jsch.ChannelSftp
@@ -13,6 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.io.File
+import java.io.FileInputStream
 import java.io.InputStream
 import java.util.Vector
 
@@ -21,25 +24,35 @@ class ClientSftpViewModel : ViewModel() {
 
     private var currentPath: String = "/"
     private var lastCurrentPath: String = "/"
+
+    val showDownloadIcon = SingleLiveEvent<Boolean>()
+
     private var uploadFileInputStreamJob: Job? = null
-    private var downloadFileJob: Job? = null
     private val _uploadFileInputStream = SingleLiveEvent<Int>()
+    private val _uploadFileProgress = SingleLiveEvent<Float>()
+    val uploadFileProgress: LiveData<Float> = _uploadFileProgress
     val uploadFileInputStream: LiveData<Int> = _uploadFileInputStream
 
     private var listFileJob: Job? = null
     private val _listFile = SingleLiveEvent<Int>()
     val listFile: LiveData<Int> = _listFile
     var listFileData: Vector<ChannelSftp.LsEntry>? = null
+    private val _listFileLoading = SingleLiveEvent<Int>()
+    val listFileLoading: LiveData<Int> = _listFileLoading
 
-    private val _uploadFileProgress = SingleLiveEvent<Float>()
-    val uploadFileProgress: LiveData<Float> = _uploadFileProgress
-
+    private var downloadFileJob: Job? = null
     private val _downloadFile = SingleLiveEvent<Int>()
     val downloadFile: LiveData<Int> = _downloadFile
     private val _downloadFileProgress = SingleLiveEvent<Float>()
     val downloadFileProgress: LiveData<Float> = _downloadFileProgress
 
-    private var listFileLoading = false
+    private var deleteFileJob: Job? = null
+    private val _deleteFile = SingleLiveEvent<Int>()
+    val deleteFile: LiveData<Int> = _deleteFile
+
+    private var renameFileJob: Job? = null
+    private val _renameFile = SingleLiveEvent<Int>()
+    val renameFile: LiveData<Int> = _renameFile
 
     fun getCurrentFilePath() = currentPath
 
@@ -113,16 +126,155 @@ class ClientSftpViewModel : ViewModel() {
             }
         }
     }
+    private fun addLocalChildrenFile(
+        file: File,
+        selectParentPath: String,
+        srcFilePath: MutableList<String>,
+        dstFilePath: MutableList<String>,
+        allSize: MutableList<Long>,
+    ): Unit {
+        if (!file.isDirectory){
+            return
+        }
+        val s = file.listFiles()
+        s?.forEach { f ->
+            if (f.isDirectory) {
+                // 文件夹
+                addLocalChildrenFile(
+                    f,
+                    selectParentPath,
+                    srcFilePath,
+                    dstFilePath,
+                    allSize)
+            } else if (f.isFile){
+                // 本地文件
+                srcFilePath.add(f.absolutePath)
+                val sdcard = Environment.getExternalStorageDirectory().absolutePath
+                val absoluteSelectPath = if (selectParentPath.startsWith(sdcard)) {
+                    selectParentPath
+                } else {
+                    sdcard.removeSuffix("/")+selectParentPath
+                }
+                val p = currentPath.removeSuffix("/") + "/" + f.absolutePath.removePrefix(absoluteSelectPath)
+                dstFilePath.add(normalizeFilePath(p))
+                allSize[0] += f.length()
+            }
+        }
+    }
+
+    fun uploadLocalFiles(sftpClientService: SftpClientService?, selectParentPath: String, files: List<File>) {
+        if (uploadFileInputStreamJob != null && uploadFileInputStreamJob?.isActive == true){
+            return
+        }
+        uploadFileInputStreamJob = viewModelScope.launch(Dispatchers.IO) {
+            val srcFilePath: MutableList<String> = mutableListOf()
+            val dstFilePath: MutableList<String> = mutableListOf()
+            val allSize = MutableList(1){0L}
+            if (selectParentPath == "/") {
+                // 根目录不用加
+            } else {
+
+            }
+            files.forEach { f ->
+                if (f.isDirectory) {
+                    // 文件夹
+                    addLocalChildrenFile(
+                        f,
+                        selectParentPath,
+                        srcFilePath,
+                        dstFilePath,
+                        allSize)
+                } else if (f.isFile){
+                    // 本地文件
+                    srcFilePath.add(f.absolutePath)
+                    // 远程文件
+                    val sdcard = Environment.getExternalStorageDirectory().absolutePath
+                    val absoluteSelectPath = if (selectParentPath.startsWith(sdcard)) {
+                        selectParentPath
+                    } else {
+                        sdcard.removeSuffix("/")+selectParentPath
+                    }
+                    val p = currentPath.removeSuffix("/") + "/" + f.absolutePath.removePrefix(absoluteSelectPath)
+                    dstFilePath.add(normalizeFilePath(p))
+                    allSize[0] += f.length()
+                }
+            }
+            // 升序排序，先创建文件夹
+            srcFilePath.sortBy {
+                it.length
+            }
+            dstFilePath.sortBy {
+                it.length
+            }
+
+            srcFilePath.forEach {
+                Timber.d("uploadLocalFiles srcFilePath: ${it}")
+            }
+            dstFilePath.forEach {
+                Timber.d("uploadLocalFiles dstFilePath: ${it}")
+            }
+            allSize.forEach {
+                Timber.d("uploadLocalFiles allSize: ${it}")
+            }
+
+            if (srcFilePath.size == dstFilePath.size){
+                var uploadedBytes: Long = 0
+                var lastUploadedBytes: Long = 0
+                var totalBytes: Long = allSize[0]
+
+                for (i in srcFilePath.indices){
+                    val l = object : SftpProgressMonitor {
+                        override fun init(op: Int, src: String?, dest: String?, max: Long) {
+                            if (i == 0){
+                                Timber.d("Upload Start")
+                            }
+                        }
+
+                        override fun count(count: Long): Boolean {
+                            uploadedBytes += count
+                            // 回传进度
+                            if (totalBytes > 0){
+                                if ((uploadedBytes - lastUploadedBytes) > totalBytes/1000 &&
+                                    (uploadedBytes - lastUploadedBytes) > 1024*1024){
+                                    // 超过千分之一并且大小大于1M，就更新进度
+                                    lastUploadedBytes = uploadedBytes
+                                    _uploadFileProgress.postValue((uploadedBytes*100/totalBytes).toFloat())
+                                }
+                            }
+                            return true // Return false to cancel the transfer
+                        }
+
+                        override fun end() {
+                            if (i == srcFilePath.size-1){
+                                // 最后一个
+                                _uploadFileProgress.postValue(100f)
+                                Timber.d("Upload finished")
+                            }
+
+                        }
+                    }
+                    Timber.d("uploadLocalFiles srcFilePath[${i}]: ${srcFilePath[i]}")
+                    sftpClientService?.getClient()?.uploadFileInputStream(FileInputStream(srcFilePath[i]), dstFilePath[i], l)
+                }
+            }
+
+        }
+        uploadFileInputStreamJob?.invokeOnCompletion { throwable ->
+            if (throwable == null) {
+                Timber.d("uploadLocalFiles ok")
+                _uploadFileInputStream.postValue(1)
+            } else {
+                Timber.d("uploadLocalFiles throwable = ${throwable.message}")
+                _uploadFileInputStream.postValue(0)
+            }
+        }
+    }
 
     fun listFile(
         sftpClientService: SftpClientService?,
         absolutePath: String,
     ) {
-        if (listFileLoading){
-            Timber.d("listFile loading..")
-            return
-        }
-        listFileLoading = true
+        _listFileLoading.postValue(1)
         lastCurrentPath = currentPath
         currentPath = absolutePath
         if (listFileJob != null && listFileJob?.isActive == true){
@@ -165,7 +317,7 @@ class ClientSftpViewModel : ViewModel() {
                 }
                 _listFile.postValue(0)
             }
-            listFileLoading = false
+            _listFileLoading.postValue(-1)
         }
     }
 
@@ -189,7 +341,6 @@ class ClientSftpViewModel : ViewModel() {
                         continue
                     }
                     if (i.attrs.isDir){
-                        // 文件夹也要加入，不然创建文件有问题
                         addChildrenFile(
                             sftpClientService = sftpClientService,
                             dirName = dirName+"/"+i.filename,
@@ -254,6 +405,7 @@ class ClientSftpViewModel : ViewModel() {
             allSize.forEach {
                 Timber.d("downloadFile allSize: ${it}")
             }
+            //todo 检测是否覆盖相同的文件
 
             if (srcFilePath.size == dstFilePath.size){
                 var uploadedBytes: Long = 0
@@ -310,6 +462,59 @@ class ClientSftpViewModel : ViewModel() {
             } else {
                 Timber.d("downloadFile throwable = ${throwable.message}")
                 _downloadFile.postValue(0)
+            }
+        }
+    }
+
+    fun deleteFiles(
+        sftpClientService: SftpClientService?,
+        files: List<ChannelSftp.LsEntry>,
+    ) {
+        if (deleteFileJob != null && deleteFileJob?.isActive == true){
+            return
+        }
+        deleteFileJob = viewModelScope.launch(Dispatchers.IO) {
+            files.forEach {
+                if (it.attrs.isReg){
+                    sftpClientService?.getClient()?.deleteFile(currentPath.removeSuffix("/")+"/"+it.filename)
+                }else if (it.attrs.isDir) {
+                    sftpClientService?.getClient()?.deleteDir(currentPath.removeSuffix("/")+"/"+it.filename)
+                }
+            }
+        }
+        deleteFileJob?.invokeOnCompletion { throwable ->
+            if (throwable == null) {
+                Timber.d("deleteFiles ok")
+                _deleteFile.postValue(1)
+            } else {
+                Timber.d("deleteFiles throwable = ${throwable.message}")
+                _deleteFile.postValue(0)
+            }
+        }
+    }
+
+    fun renameFile(
+        sftpClientService: SftpClientService?,
+        file: ChannelSftp.LsEntry,
+        name: String
+    ) {
+        if (renameFileJob != null && renameFileJob?.isActive == true){
+            return
+        }
+        renameFileJob = viewModelScope.launch(Dispatchers.IO) {
+
+            sftpClientService?.getClient()?.renameFile(
+                normalizeFilePath(currentPath+"/"+file.filename),
+                normalizeFilePath("$currentPath/$name")
+                )
+        }
+        renameFileJob?.invokeOnCompletion { throwable ->
+            if (throwable == null) {
+                Timber.d("renameFile ok")
+                _renameFile.postValue(1)
+            } else {
+                Timber.d("renameFile throwable = ${throwable.message}")
+                _renameFile.postValue(0)
             }
         }
     }

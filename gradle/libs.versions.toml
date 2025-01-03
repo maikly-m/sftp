@@ -41,6 +41,7 @@ zxingAndroidEmbedded = "4.1.0"
 cameraCamera2 = "1.4.1"
 cameraCore = "1.4.1"
 cameraLifecycle = "1.4.1"
+lottie = "6.0.0"
 
 [libraries]
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
@@ -89,6 +90,7 @@ tencent-mm-opensdk = { group = "com.tencent.mm.opensdk", name = "wechat-sdk-andr
 zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxingAndroidEmbedded" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraCore" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraLifecycle" }
+lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
