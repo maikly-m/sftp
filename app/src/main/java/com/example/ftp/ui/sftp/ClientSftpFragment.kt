@@ -201,7 +201,7 @@ class ClientSftpFragment : Fragment() {
 
         viewModel.deleteFile.observe(viewLifecycleOwner) {
             if (it == 1) {
-                showToast("删除成功")
+                //showToast("删除成功")
             } else {
                 showToast("删除失败")
             }
@@ -213,7 +213,7 @@ class ClientSftpFragment : Fragment() {
 
         viewModel.renameFile.observe(viewLifecycleOwner) {
             if (it == 1) {
-                showToast("重命名成功")
+                //showToast("重命名成功")
             } else {
                 // showToast("重命名失败")
             }
@@ -221,6 +221,16 @@ class ClientSftpFragment : Fragment() {
             viewModel.listFile(sftpClientService, viewModel.getCurrentFilePath())
 
             viewModel.showDownloadIcon.value = false
+        }
+
+        viewModel.mkdir.observe(viewLifecycleOwner) {
+            if (it == 1) {
+                // showToast("重命名成功")
+            } else {
+                // showToast("重命名失败")
+            }
+            // 刷新列表
+            viewModel.listFile(sftpClientService, viewModel.getCurrentFilePath())
         }
 
         viewModel.showDownloadIcon.observe(viewLifecycleOwner) {
@@ -253,7 +263,26 @@ class ClientSftpFragment : Fragment() {
             // 打开dialog选择
             pickFilesDialog = PickFilesDialog.newInstance(false)
             pickFilesDialog!!.show(requireActivity())
-            // openFile()
+        }
+
+        binding.btnMkdir.setOnClickListener {
+            showInputDialog(requireContext(), "请输入文件夹名字",
+                onConfirm = {
+                    if (TextUtils.isEmpty(it)){
+                        showToast("请输入名字")
+                    }else{
+                        // 检验是否合规
+                        // 文件夹
+                        if (!isFolderNameValid(it)){
+                            showToast("名字非法")
+                            return@showInputDialog
+                        }
+                        viewModel.mkdir(sftpClientService, it)
+                    }
+                },
+                onCancel = {
+
+                }, )
         }
 
         binding.btnDownload.setOnClickListener {

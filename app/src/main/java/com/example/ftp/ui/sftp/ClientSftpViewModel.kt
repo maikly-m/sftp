@@ -54,6 +54,10 @@ class ClientSftpViewModel : ViewModel() {
     private val _renameFile = SingleLiveEvent<Int>()
     val renameFile: LiveData<Int> = _renameFile
 
+    private var mkdirJob: Job? = null
+    private val _mkdir = SingleLiveEvent<Int>()
+    val mkdir: LiveData<Int> = _mkdir
+
     fun getCurrentFilePath() = currentPath
 
     fun uploadFileInputStream(
@@ -515,6 +519,27 @@ class ClientSftpViewModel : ViewModel() {
             } else {
                 Timber.d("renameFile throwable = ${throwable.message}")
                 _renameFile.postValue(0)
+            }
+        }
+    }
+
+    fun mkdir(
+        sftpClientService: SftpClientService?,
+        name: String
+    ) {
+        if (mkdirJob != null && mkdirJob?.isActive == true){
+            return
+        }
+        mkdirJob = viewModelScope.launch(Dispatchers.IO) {
+            sftpClientService?.getClient()?.mkdir(normalizeFilePath("$currentPath/$name"))
+        }
+        mkdirJob?.invokeOnCompletion { throwable ->
+            if (throwable == null) {
+                Timber.d("renameFile ok")
+                _mkdir.postValue(1)
+            } else {
+                Timber.d("renameFile throwable = ${throwable.message}")
+                _mkdir.postValue(0)
             }
         }
     }

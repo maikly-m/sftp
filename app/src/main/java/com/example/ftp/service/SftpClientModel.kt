@@ -134,6 +134,25 @@ class SftpClientModel {
         }
     }
 
+    suspend fun mkdir(path: String): Unit {
+        suspendCoroutine { continuation ->
+            try {
+                checkConnect {
+                    try {
+                        channelSftp?.mkdir(path)
+                        continuation.resume(path)
+                    } catch (e: SftpException) {
+                        e.printStackTrace()
+                        continuation.resumeWithException(e)
+                    }
+                }
+            } catch (e: Exception) {
+                // 捕获异常并通过 continuation 恢复异常状态
+                continuation.resumeWithException(e)
+            }
+        }
+    }
+
     suspend fun pwd(): String {
         return suspendCoroutine { continuation ->
             try {
