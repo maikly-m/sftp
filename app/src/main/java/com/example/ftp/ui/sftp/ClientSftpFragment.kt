@@ -43,6 +43,7 @@ import java.util.Vector
 
 class ClientSftpFragment : Fragment() {
 
+    private var showDownloadIcon = false
     private var progressDialog: AlertDialog? =null
     private lateinit var nameFileAdapter: ListNameAdapter
     private lateinit var listFileAdapter: ListFileAdapter
@@ -106,6 +107,7 @@ class ClientSftpFragment : Fragment() {
                 d = viewModel.listFileData?:Vector<ChannelSftp.LsEntry>()
                 listFileAdapter.items.clear()
                 listFileAdapter.items.addAll(d)
+                listFileAdapter.checkList.addAll(MutableList(d.size){false})
                 //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
                 listFileAdapter.notifyDataSetChanged()
 
@@ -150,6 +152,34 @@ class ClientSftpFragment : Fragment() {
 
             }
         }
+
+        viewModel.downloadFile.observe(viewLifecycleOwner){
+            if (it==1) {
+                showToast("下载成功")
+                // 刷新列表
+            } else {
+                showToast("下载失败")
+            }
+            progressDialog?.dismiss()
+
+            showDownloadIcon = false
+            listFileAdapter.notifyDataSetChanged()
+        }
+
+        viewModel.downloadFileProgress.observe(viewLifecycleOwner){
+            if (it > 0f) {
+                //show
+                if (progressDialog != null && progressDialog!!.isShowing){
+                    progressDialog!!.setTitle("下载中... ${it.format(2)}"+"%")
+                    return@observe
+                }
+                val builder = AlertDialog.Builder(requireContext())
+                progressDialog = builder.setTitle("下载中...").create()
+                progressDialog?.show()
+            } else {
+
+            }
+        }
     }
 
     private fun initView() {
@@ -162,11 +192,33 @@ class ClientSftpFragment : Fragment() {
         val rv = binding.rv
         // 设置 RecyclerView 的适配器
         rv.layoutManager = LinearLayoutManager(requireContext())
-        listFileAdapter = ListFileAdapter(Vector<ChannelSftp.LsEntry>())
+        listFileAdapter = ListFileAdapter(Vector<ChannelSftp.LsEntry>(), mutableListOf())
         rv.adapter = listFileAdapter
 
         binding.btnUpload.setOnClickListener {
             openFile()
+        }
+
+        binding.btnDownload.setOnClickListener {
+            //下载
+            val files = mutableListOf<ChannelSftp.LsEntry>()
+            listFileAdapter.checkList.forEachIndexed { index, b ->
+                if (b){
+                    // 选定
+                    files.add(listFileAdapter.items[index])
+                }
+            }
+            viewModel.downloadFile(sftpClientService, files)
+        }
+        binding.btnSelect.setOnClickListener {
+            if (!showDownloadIcon) {
+                showDownloadIcon = true
+                listFileAdapter.checkList.clear()
+                listFileAdapter.checkList.addAll(MutableList(listFileAdapter.items.size){false})
+            } else {
+                showDownloadIcon = false
+            }
+            listFileAdapter.notifyDataSetChanged()
         }
     }
 
@@ -381,7 +433,7 @@ class ClientSftpFragment : Fragment() {
         override fun getItemCount(): Int = items.size
     }
 
-    inner class ListFileAdapter(val items: Vector<ChannelSftp.LsEntry>) : RecyclerView.Adapter<ListFileAdapter.ViewHolder>() {
+    inner class ListFileAdapter(val items: Vector<ChannelSftp.LsEntry>, val checkList: MutableList<Boolean>) : RecyclerView.Adapter<ListFileAdapter.ViewHolder>() {
         inner class ViewHolder(private val binding: ItemListFileBinding) : RecyclerView.ViewHolder(binding.root) {
 
             init {
@@ -394,16 +446,50 @@ class ClientSftpFragment : Fragment() {
                 binding.tvTime.text = item.attrs.mtimeString
                 if (item.attrs.isDir) {
                     binding.ivIcon.setImageResource(R.drawable.format_folder_smartlock)
-                    binding.cl.setOnClickListener {
-                        val fullPath = viewModel.getCurrentFilePath().removeSuffix("/")+"/"+item.filename
-                        viewModel.listFile(sftpClientService, fullPath)
+                    if (showDownloadIcon){
+                        binding.ivSelect.visibility = View.VISIBLE
+                        binding.cl.setOnClickListener {
+                            checkList[adapterPosition] = !checkList[adapterPosition]
+                            if ( checkList[adapterPosition]) {
+                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_015)
+                            } else {
+                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_000)
+                            }
+                        }
+                    }else{
+                        binding.ivSelect.visibility = View.GONE
+                        binding.cl.setOnClickListener {
+                            val fullPath = viewModel.getCurrentFilePath().removeSuffix("/")+"/"+item.filename
+                            viewModel.listFile(sftpClientService, fullPath)
+                        }
                     }
                 } else {
                     binding.ivIcon.setImageResource(R.drawable.format_unknown)
-                    binding.cl.setOnClickListener {
-                        // other
+                    if (showDownloadIcon){
+                        binding.ivSelect.visibility = View.VISIBLE
+                        binding.cl.setOnClickListener {
+                            checkList[adapterPosition] = !checkList[adapterPosition]
+                            if ( checkList[adapterPosition]) {
+                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_015)
+                            } else {
+                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_000)
+                            }
+                        }
+                    }else{
+                        binding.ivSelect.visibility = View.GONE
+                        binding.cl.setOnClickListener {
+                            // other
+                        }
                     }
+
                 }
+
+                if ( checkList[adapterPosition]) {
+                    binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_015)
+                } else {
+                    binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_000)
+                }
+
             }
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {

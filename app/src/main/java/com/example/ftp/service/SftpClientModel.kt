@@ -12,10 +12,12 @@ import com.jcraft.jsch.SftpProgressMonitor
 import com.jcraft.jsch.UserInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import okio.use
 import org.greenrobot.eventbus.EventBus
 import timber.log.Timber
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.Vector
 import java.util.concurrent.atomic.AtomicInteger
@@ -271,8 +273,46 @@ class SftpClientModel {
             try {
                 checkConnect {
                     try {
-                        channelSftp?.get(src, dst, l)
-                        continuation.resume(true)
+                        Timber.d("downloadFile dst=${dst}")
+                        val file = File(dst)
+                        // 检查父目录是否存在，不存在则创建
+                        if (file.parentFile != null){
+                            if (!file.parentFile!!.exists()) {
+                                val isDirCreated = file.parentFile!!.mkdirs()
+                                if (!isDirCreated) {
+                                    // 无法创建
+                                    continuation.resumeWithException(Throwable("无法创建父目录 ${dst}"))
+                                    return@checkConnect
+                                }else{
+                                    // 创建文件
+                                    if (!file.exists()) {
+                                        val isFileCreated = file.createNewFile()
+                                        if (!isFileCreated) {
+                                            // 无法创建
+                                            continuation.resumeWithException(Throwable("无法创建文件 ${dst}"))
+                                            return@checkConnect
+                                        }
+                                    }
+                                }
+                            }else{
+                                // 创建文件
+                                if (!file.exists()) {
+                                    val isFileCreated = file.createNewFile()
+                                    if (!isFileCreated) {
+                                        // 无法创建
+                                        continuation.resumeWithException(Throwable("无法创建文件 ${dst}"))
+                                        return@checkConnect
+                                    }
+                                }
+                            }
+                            FileOutputStream(file).use {
+                                channelSftp?.get(src, it, l)
+                                continuation.resume(true)
+                            }
+
+                        }else{
+                            continuation.resumeWithException(Throwable("父目录不存在 ${dst}"))
+                        }
                     } catch (e: SftpException) {
                         e.printStackTrace()
                         continuation.resumeWithException(e)

@@ -1,5 +1,6 @@
 package com.example.ftp.ui.sftp
 
+import android.os.Environment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -168,12 +169,14 @@ class ClientSftpViewModel : ViewModel() {
         }
     }
 
-    suspend fun listFile4Check(
+    private suspend fun addChildrenFile(
         sftpClientService: SftpClientService?,
-        dir: String,
-    ) : Vector<ChannelSftp.LsEntry>{
-        val listFileData = Vector<ChannelSftp.LsEntry>()
-        val s = sftpClientService?.getClient()?.listFiles(dir)
+        dirName: String,
+        srcFilePath: MutableList<String>,
+        dstFilePath: MutableList<String>,
+        allSize: MutableList<Long>,
+    ): Unit {
+        val s = sftpClientService?.getClient()?.listFiles(dirName)
         if (s != null && s.size > 0){
             for (i in s){
                 if (i is ChannelSftp.LsEntry){
@@ -185,37 +188,87 @@ class ClientSftpViewModel : ViewModel() {
                         // 父目录
                         continue
                     }
-                    listFileData.add(i)
+                    if (i.attrs.isDir){
+                        // 文件夹也要加入，不然创建文件有问题
+                        addChildrenFile(
+                            sftpClientService = sftpClientService,
+                            dirName = dirName+"/"+i.filename,
+                            srcFilePath = srcFilePath,
+                            dstFilePath = dstFilePath,
+                            allSize = allSize,
+                        )
+                    }else if (i.attrs.isReg) {
+                        allSize[0] += i.attrs.size
+                        srcFilePath.add(dirName+"/"+i.filename)
+                        dstFilePath.add(dirName+"/"+i.filename)
+                    }
                 }
             }
-        }else{
-
         }
-        return listFileData
     }
 
     fun downloadFile(
         sftpClientService: SftpClientService?,
-        srcFilePath: MutableList<String>,
-        dstFilePath: MutableList<String>,
-        allSize: Long,
-        size: Int
+        files: List<ChannelSftp.LsEntry>,
     ) {
         if (downloadFileJob != null && downloadFileJob?.isActive == true){
             return
         }
         downloadFileJob = viewModelScope.launch(Dispatchers.IO) {
+            val srcFilePath: MutableList<String> = mutableListOf()
+            val dstFilePath: MutableList<String> = mutableListOf()
+            val allSize = MutableList(1){0L}
+            if (currentPath == "/") {
+                // 根目录不用加
+            } else {
+            }
+            files.forEach {
+                if (it.attrs.isReg){
+                    srcFilePath.add(currentPath.removeSuffix("/")+"/"+it.filename)
+                    dstFilePath.add(currentPath.removeSuffix("/")+"/"+it.filename)
+                    allSize[0] += it.attrs.size
+                    // 文件
+                }else if (it.attrs.isDir) {
+                    // 文件夹
+                    addChildrenFile(sftpClientService,
+                        currentPath.removeSuffix("/")+"/"+it.filename,
+                        srcFilePath,
+                        dstFilePath,
+                        allSize)
+                }
+            }
+            // 升序排序，先创建文件夹
+            srcFilePath.sortBy {
+                it.length
+            }
+            dstFilePath.sortBy {
+                it.length
+            }
+
+            srcFilePath.forEach {
+                Timber.d("downloadFile srcFilePath: ${it}")
+            }
+            dstFilePath.forEach {
+                Timber.d("downloadFile dstFilePath: ${it}")
+            }
+            allSize.forEach {
+                Timber.d("downloadFile allSize: ${it}")
+            }
+
             if (srcFilePath.size == dstFilePath.size){
                 var uploadedBytes: Long = 0
                 var lastUploadedBytes: Long = 0
                 var totalBytes: Long = 0
-                if (allSize > 0){
-                    totalBytes = allSize
+                if (allSize[0] > 0){
+                    totalBytes = allSize[0]
                 }else{
 
                 }
 
+                // 所有文件都是基于sdcard创建的
+                val sdcardPath = Environment.getExternalStorageDirectory().absolutePath
                 for (i in srcFilePath.indices){
+
                     val l = object : SftpProgressMonitor {
                         override fun init(op: Int, src: String?, dest: String?, max: Long) {
                             if (i == 0){
@@ -236,12 +289,7 @@ class ClientSftpViewModel : ViewModel() {
                             }
                             return true // Return false to cancel the transfer
                         }
-
                         override fun end() {
-                            // 文件大小拿不到的时候，按照文件占比来回传进度
-                            if (totalBytes == 0L){
-                                _downloadFileProgress.postValue(100f/size * (i+1))
-                            }
                             if (i == srcFilePath.size-1){
                                 // 最后一个
                                 _downloadFileProgress.postValue(100f)
@@ -250,6 +298,7 @@ class ClientSftpViewModel : ViewModel() {
 
                         }
                     }
+                    dstFilePath[i] = "${sdcardPath}${dstFilePath[i]}"
                     sftpClientService?.getClient()?.downloadFile(srcFilePath[i], dstFilePath[i], l)
                 }
             }
