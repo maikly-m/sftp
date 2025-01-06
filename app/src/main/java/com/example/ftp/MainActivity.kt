@@ -18,7 +18,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 设置全屏
-        setStatusBarAndNavBar(window, Color.WHITE, false)
+        setStatusBarAndNavBar(window, Color.WHITE, true)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)

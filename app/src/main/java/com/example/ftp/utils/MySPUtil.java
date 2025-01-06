@@ -47,7 +47,7 @@ public class MySPUtil {
         return null;
     }
 
-    public static final String SERVER_IP = "server_ip";
+    public static final String SORT_TYPE = "sort_type";
     public static final String SERVER_PORT = "server_port";
     public static final String SERVER_NAME = "server_name";
     public static final String SERVER_PW = "server_pw";
@@ -67,6 +67,13 @@ public class MySPUtil {
     }
     public ConnectInfo getClientConnectInfo(){
         return getObject(CLIENT_CONNECT_INFO, ConnectInfo.class);
+    }
+
+    public void setSortType(int type){
+        spUtils.put(SORT_TYPE, type);
+    }
+    public int getSortType(){
+        return spUtils.getInt(SORT_TYPE, 0);
     }
 
 }

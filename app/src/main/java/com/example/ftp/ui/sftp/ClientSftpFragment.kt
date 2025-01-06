@@ -1,5 +1,6 @@
 package com.example.ftp.ui.sftp
 
+import android.animation.ObjectAnimator
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.PopupWindow
 import androidx.activity.addCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
@@ -24,6 +27,8 @@ import com.example.ftp.bean.ConnectInfo
 import com.example.ftp.databinding.FragmentClientSftpBinding
 import com.example.ftp.databinding.ItemListFileBinding
 import com.example.ftp.databinding.ItemListNameBinding
+import com.example.ftp.databinding.ItemSortNameBinding
+import com.example.ftp.databinding.PopuWindowSortFileBinding
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.service.SftpClientService
 import com.example.ftp.ui.dialog2.LoadingDialog
@@ -43,6 +48,7 @@ import java.util.Vector
 
 class ClientSftpFragment : Fragment() {
 
+    private var sortPopupWindow: PopupWindow? = null
     private var pickFilesDialog: PickFilesDialog? = null
     private var loadingDialog: LoadingDialog? = null
 
@@ -73,6 +79,37 @@ class ClientSftpFragment : Fragment() {
 
         _binding = FragmentClientSftpBinding.inflate(inflater, container, false)
         val root: View = binding.root
+
+        // back
+        binding.layoutTitleFile.ivBack.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
+        binding.layoutTitleFile.ivSelect.setOnClickListener {
+            // show select-all
+            viewModel.showDownloadIcon.value = true
+        }
+
+        binding.layoutTitleFile.tvSelectAll.setOnClickListener {
+            //select-all
+            viewModel.showSelectAll.value = true
+        }
+
+        binding.layoutTitleFile.tvCancel.setOnClickListener {
+            //select cancel
+            viewModel.showDownloadIcon.value = false
+        }
+
+        binding.layoutTitleFile.llSort.setOnClickListener {
+            // show sort
+            showPopupWindow(it)
+            binding.layoutTitleFile.ivSort.run {
+                // 创建旋转动画，参数是旋转角度
+                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation + 180f)
+                rotationAnimator.duration = 300
+                rotationAnimator.start()
+            }
+        }
 
         binding.layoutTitleBrowser.ivBack.setOnClickListener {
             // 模拟返回键按下
@@ -116,6 +153,7 @@ class ClientSftpFragment : Fragment() {
                 //show
                 d = viewModel.listFileData ?: Vector<ChannelSftp.LsEntry>()
                 listFileAdapter.items.clear()
+                sortFiles()
                 listFileAdapter.items.addAll(d)
                 listFileAdapter.checkList.addAll(MutableList(d.size) { false })
                 //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
@@ -124,12 +162,16 @@ class ClientSftpFragment : Fragment() {
 
                 nameFileAdapter.items.clear()
                 val p = viewModel.getCurrentFilePath()
+                Timber.d("p = ${p}")
                 if (TextUtils.equals("/", p)) {
                     nameFileAdapter.items.add("")
+                    binding.layoutTitleFile.tvName.text = "sdcard"
                 } else if (p.endsWith("/")) {
                     nameFileAdapter.items.addAll(p.removeSuffix("/").split("/"))
+                    binding.layoutTitleFile.tvName.text = nameFileAdapter.items[nameFileAdapter.items.size-1]
                 } else {
                     nameFileAdapter.items.addAll(p.split("/"))
+                    binding.layoutTitleFile.tvName.text = nameFileAdapter.items[nameFileAdapter.items.size-1]
                 }
                 nameFileAdapter.notifyDataSetChanged()
             } else {
@@ -140,7 +182,7 @@ class ClientSftpFragment : Fragment() {
         viewModel.listFileLoading.observe(viewLifecycleOwner) {
             if (it == 1) {
                 loadingDialog = LoadingDialog.newInstance(false)
-                loadingDialog!!.show(requireActivity())
+                loadingDialog!!.show(this)
             } else {
                 loadingDialog?.dismissAllowingStateLoss()
             }
@@ -235,13 +277,104 @@ class ClientSftpFragment : Fragment() {
 
         viewModel.showDownloadIcon.observe(viewLifecycleOwner) {
             if (it) {
+                binding.layoutTitleFile.llRegular.visibility = View.GONE
+                binding.layoutTitleFile.llSelect.visibility = View.VISIBLE
+
                 binding.clBottomClick.visibility = View.VISIBLE
                 listFileAdapter.checkList.clear()
                 listFileAdapter.checkList.addAll(MutableList(listFileAdapter.items.size) { false })
             } else {
+                binding.layoutTitleFile.llRegular.visibility = View.VISIBLE
+                binding.layoutTitleFile.llSelect.visibility = View.GONE
+
                 binding.clBottomClick.visibility = View.GONE
             }
             listFileAdapter?.notifyDataSetChanged()
+        }
+
+
+        viewModel.showSelectAll.observe(viewLifecycleOwner) {
+            listFileAdapter.checkList.clear()
+            if (it) {
+                listFileAdapter.checkList.addAll(MutableList(listFileAdapter.items.size) { true })
+            } else {
+                listFileAdapter.checkList.addAll(MutableList(listFileAdapter.items.size) { false })
+
+            }
+            listFileAdapter?.notifyDataSetChanged()
+        }
+
+        viewModel.changeSelectType.observe(viewLifecycleOwner) {
+            if (it < viewModel.sortTypes.size){
+                binding.layoutTitleFile.tvSort.text = viewModel.sortTypes[it]
+                MySPUtil.getInstance().sortType = it
+                //show
+                d = viewModel.listFileData ?: Vector<ChannelSftp.LsEntry>()
+                listFileAdapter.items.clear()
+                sortFiles()
+                listFileAdapter.items.addAll(d)
+                listFileAdapter.checkList.addAll(MutableList(d.size) { false })
+                //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
+                listFileAdapter.notifyDataSetChanged()
+            }
+        }
+    }
+
+    private fun sortFiles() {
+        //排序
+        //        "按名称",
+        //        "按类型",
+        //        "按大小升序",
+        //        "按大小降序",
+        //        "按时间升序",
+        //        "按时间降序",
+        when (viewModel.changeSelectType.value) {
+            0 -> {
+                d.sortBy { data ->
+                    data.filename
+                }
+            }
+
+            1 -> {
+                d.sortBy { data ->
+                    val extension = data.filename.substringAfterLast('.', "")
+                    if (TextUtils.isEmpty(extension)) {
+                        data.filename
+                    } else {
+                        extension
+                    }
+                }
+            }
+
+            2 -> {
+                d.sortBy { data ->
+                    data.attrs.size
+                }
+            }
+
+            3 -> {
+                d.sortByDescending { data ->
+                    data.attrs.size
+                }
+            }
+
+            4 -> {
+                d.sortBy { data ->
+                    data.attrs.mTime
+                }
+            }
+
+            5 -> {
+                d.sortByDescending { data ->
+                    data.attrs.mTime
+                }
+            }
+
+            else -> {
+                d.sortBy { data ->
+                    data.filename
+                }
+            }
         }
     }
 
@@ -354,6 +487,47 @@ class ClientSftpFragment : Fragment() {
         }
     }
 
+    private fun showPopupWindow(anchorView: View) {
+        // Inflate the popup_layout.xml
+        val inflater = LayoutInflater.from(requireContext())
+        val popupView = PopuWindowSortFileBinding.inflate(inflater, null, false)
+
+        // Initialize the PopupWindow
+        sortPopupWindow = PopupWindow(
+            popupView.root,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true // Focusable
+        )
+
+        // Set PopupWindow background (required for dismissing on outside touch)
+        sortPopupWindow?.setBackgroundDrawable(resources.getDrawable(R.drawable.bg_popu_window))
+        sortPopupWindow?.isOutsideTouchable = true
+
+
+        val recyclerView = popupView.rv
+        // 设置 RecyclerView 的适配器
+        recyclerView.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
+
+        val adapter = SortFileAdapter(viewModel.sortTypes)
+        recyclerView.adapter = adapter
+
+        sortPopupWindow?.setOnDismissListener {
+            binding.layoutTitleFile.ivSort.run {
+                // 创建旋转动画，参数是旋转角度
+                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation - 180f)
+                rotationAnimator.duration = 300
+                rotationAnimator.start()
+            }
+        }
+        // Show the PopupWindow
+        sortPopupWindow?.showAsDropDown(anchorView, 0, 10) // Adjust position relative to the anchor view
+
+        // Alternatively, use showAtLocation for custom positioning
+        // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
+    }
+
     fun showInputDialog(
         context: Context,
         title: String,
@@ -382,6 +556,7 @@ class ClientSftpFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
+        // todo 启动
         connectInfo = MySPUtil.getInstance().clientConnectInfo
         if (connectInfo != null) {
             startFtpClient()
@@ -567,6 +742,44 @@ class ClientSftpFragment : Fragment() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val binding =
                 ItemListFileBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            return ViewHolder(binding)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.bind(items[position])
+        }
+
+        override fun getItemCount(): Int = items.size
+    }
+
+    inner class SortFileAdapter(val items: MutableList<String>) :
+        RecyclerView.Adapter<SortFileAdapter.ViewHolder>() {
+        inner class ViewHolder(private val binding: ItemSortNameBinding) :
+            RecyclerView.ViewHolder(binding.root) {
+
+            fun bind(item: String) {
+                binding.executePendingBindings()
+                binding.tvName.text = item
+                binding.ll.setOnClickListener {
+                    viewModel.changeSelectType.value = adapterPosition
+                    binding.tvName.setTextColor(Color.BLUE)
+                    binding.ll.post {
+                        notifyDataSetChanged()
+                    }
+                    binding.ll.postDelayed({sortPopupWindow?.dismiss()},100)
+                }
+                if (viewModel.changeSelectType.value == adapterPosition) {
+                    binding.tvName.setTextColor(Color.BLUE)
+                }else{
+                    binding.tvName.setTextColor(Color.BLACK)
+                }
+
+            }
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val binding =
+                ItemSortNameBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             return ViewHolder(binding)
         }
 
