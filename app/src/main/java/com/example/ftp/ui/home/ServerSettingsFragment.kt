@@ -7,13 +7,11 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
-import android.text.InputType
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
@@ -22,7 +20,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.ftp.R
 import com.example.ftp.bean.ConnectInfo
-import com.example.ftp.databinding.FragmentClientSettingsBinding
+import com.example.ftp.databinding.FragmentServerSettingsBinding
 import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.grantCamera
 import com.example.ftp.utils.grantExternalStorage
@@ -31,12 +29,10 @@ import com.example.ftp.utils.isIPAddress
 import com.example.ftp.utils.showToast
 import timber.log.Timber
 
-class ClientSettingsFragment : Fragment() {
+class ServerSettingsFragment : Fragment() {
 
-    private var serverInfo: ConnectInfo? = null
-    private lateinit var viewModel: ClientSettingsViewModel
-    private var _binding: FragmentClientSettingsBinding? = null
-
+    private var _binding: FragmentServerSettingsBinding? = null
+    private lateinit var viewModel: ServerSettingsViewModel
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
@@ -47,21 +43,20 @@ class ClientSettingsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         viewModel =
-            ViewModelProvider(this).get(ClientSettingsViewModel::class.java)
+            ViewModelProvider(this).get(ServerSettingsViewModel::class.java)
 
-        _binding = FragmentClientSettingsBinding.inflate(inflater, container, false)
+        _binding = FragmentServerSettingsBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
         binding.layoutTitle.ivBack.setOnClickListener {
             findNavController().popBackStack()
         }
-        binding.layoutTitle.tvName.text = "客户端"
+        binding.layoutTitle.tvName.text = "服务端"
 
         initView()
 
         return root
     }
-
 
     // 权限请求相关
     private val storagePermissionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -111,19 +106,9 @@ class ClientSettingsFragment : Fragment() {
         }
 
         // 替换闪烁的cursor
-        replaceCursorStyle(binding.etIp)
         replaceCursorStyle(binding.etPort)
         replaceCursorStyle(binding.etName)
         replaceCursorStyle(binding.etPw)
-
-        binding.etIp.addTextChangedListener(
-            beforeTextChanged = { charSequence: CharSequence?, i: Int, i1: Int, i2: Int -> },
-            onTextChanged = { charSequence: CharSequence?, i: Int, i1: Int, i2: Int -> },
-            afterTextChanged = {
-                it?.toString()?.run {
-                    viewModel.etIp = this
-                }
-            })
 
         binding.etPort.addTextChangedListener(
             beforeTextChanged = { charSequence: CharSequence?, i: Int, i1: Int, i2: Int -> },
@@ -132,7 +117,8 @@ class ClientSettingsFragment : Fragment() {
                 it?.toString()?.run {
                     viewModel.etPort = this
                 }
-            })
+            }
+           )
         binding.etName.addTextChangedListener(
             beforeTextChanged = { charSequence: CharSequence?, i: Int, i1: Int, i2: Int -> },
             onTextChanged = { charSequence: CharSequence?, i: Int, i1: Int, i2: Int -> },
@@ -150,31 +136,9 @@ class ClientSettingsFragment : Fragment() {
                 }
             })
 
-//        ivPwMask.setOnClickListener {
-//            val textPassword = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-//            val textVisiblePassword = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-//            etPw.inputType = if (etPw.inputType == textPassword) {
-//                ivPwMask.setImageResource(R.drawable.icon_eyes_solid)
-//                textVisiblePassword
-//            } else {
-//                ivPwMask.setImageResource(R.drawable.icon_eyes_close)
-//                textPassword
-//            }
-//        }
 
 
-        binding.tvScan.setOnClickListener {
-            // 扫码
-            grantCamera(requireActivity()){
-                if (it) {
-                    findNavController().navigate(R.id.action_client_settings2scan_code)
-                } else {
-
-                }
-            }
-        }
-
-        binding.tvConnect.setOnClickListener {
+        binding.tvStart.setOnClickListener {
 
             var p = -1
             try {
@@ -182,43 +146,25 @@ class ClientSettingsFragment : Fragment() {
             } catch (e: Exception) {
                 Timber.e(e.message)
             }
-            val info =  ConnectInfo(binding.etIp.text.toString(),
+
+            val info =  ConnectInfo("",
                 p,
                 binding.etName.text.toString(),
                 binding.etPw.text.toString(),
             )
 
-            if (isIPAddress(info.ip)){
-                if (info.port < 0) {
-                    showToast("端口要大于0")
+            if (info.port < 0) {
+                showToast("端口要大于0")
+            } else {
+                if (TextUtils.isEmpty(info.name)) {
+                    showToast("用户名不能为空")
                 } else {
-                    if (TextUtils.isEmpty(info.name)) {
-                        showToast("用户名不能为空")
+                    if (TextUtils.isEmpty(info.pw)) {
+                        showToast("密码不能为空")
                     } else {
-                        if (TextUtils.isEmpty(info.pw)) {
-                            showToast("密码不能为空")
-                        } else {
-                            MySPUtil.getInstance().clientConnectInfo = info
-                            findNavController().navigate(R.id.action_client_settings2client_sftp)
-                        }
+                        MySPUtil.getInstance().serverConnectInfo = info
+                        findNavController().navigate(R.id.action_server_settings2server_sftp)
                     }
-                }
-
-            }else{
-                showToast("ip格式不正确")
-            }
-        }
-
-        setFragmentResultListener("scan"){ _, bundle ->
-            bundle.getString("scanResult")?.let {
-                if (!TextUtils.isEmpty(it)){
-                    Timber.d("scanResult ${it}")
-                    val info = GsonUtil.jsonToBean(it, ConnectInfo::class.java)
-                    binding.etIp.setText(info.ip)
-                    binding.etPort.setText("${info.port}")
-                    binding.etName.setText(info.name)
-                    binding.etPw.setText(info.pw)
-                    serverInfo = info
                 }
             }
         }
@@ -244,10 +190,7 @@ class ClientSettingsFragment : Fragment() {
 
     private fun configure() {
         // 从sp中配置
-        MySPUtil.getInstance().clientConnectInfo?.run {
-            if (!TextUtils.isEmpty(ip)){
-                binding.etIp.setText(ip)
-            }
+        MySPUtil.getInstance().serverConnectInfo?.run {
             if (port > 0){
                 binding.etPort.setText("${port}")
             }

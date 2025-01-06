@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Color
 import android.os.Bundle
-import android.os.Environment
 import android.os.IBinder
 import android.text.TextUtils
 import android.view.LayoutInflater
@@ -21,6 +20,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.ftp.R
+import com.example.ftp.bean.ConnectInfo
 import com.example.ftp.databinding.FragmentClientSftpBinding
 import com.example.ftp.databinding.ItemListFileBinding
 import com.example.ftp.databinding.ItemListNameBinding
@@ -50,7 +50,7 @@ class ClientSftpFragment : Fragment() {
     private lateinit var nameFileAdapter: ListNameAdapter
     private lateinit var listFileAdapter: ListFileAdapter
     private lateinit var d: Vector<ChannelSftp.LsEntry>
-    private var serverIp: String? = null
+    private var connectInfo: ConnectInfo? = null
     private var sftpClientService: SftpClientService? = null
     private var isBound: Boolean = false
     private lateinit var viewModel: ClientSftpViewModel
@@ -382,8 +382,8 @@ class ClientSftpFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        serverIp = MySPUtil.getInstance().serverIp
-        if (!TextUtils.isEmpty(serverIp)) {
+        connectInfo = MySPUtil.getInstance().clientConnectInfo
+        if (connectInfo != null) {
             startFtpClient()
         }
     }
@@ -411,7 +411,9 @@ class ClientSftpFragment : Fragment() {
             Timber.d("serviceConnection ..")
             val binder = service as SftpClientService.LocalBinder
             sftpClientService = binder.getService()
-            sftpClientService!!.connect(serverIp!!, 2222, "ftpuser", "12345")
+            connectInfo?.let {
+                sftpClientService!!.connect(it.ip, it.port, it.name, it.pw)
+            }
             isBound = true
         }
 

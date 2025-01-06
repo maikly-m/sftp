@@ -1,5 +1,6 @@
 package com.example.ftp.ui.home
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.ftp.R
 import com.example.ftp.databinding.FragmentHomeBinding
+import com.example.ftp.utils.setStatusBarAndNavBar
 import timber.log.Timber
 
 class HomeFragment : Fragment() {
@@ -30,16 +32,31 @@ class HomeFragment : Fragment() {
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
-        // --------------
-        binding.btnServerSftp.setOnClickListener {
-            findNavController().navigate(R.id.action_home2server_sftp)
+
+        binding.layoutTitle.ivBack.visibility = View.GONE
+        binding.layoutTitle.tvName.text = "文件传输"
+
+        binding.layoutTitle.ivRight.visibility = View.VISIBLE
+        binding.layoutTitle.ivRight.setImageResource(R.drawable.svg_introduce_icon)
+        binding.layoutTitle.ivRight.setOnClickListener {
+            findNavController().navigate(R.id.action_home2introduce)
         }
 
-        binding.btnClientSftp.setOnClickListener {
+        binding.llServer.setOnClickListener {
+            findNavController().navigate(R.id.action_home2server_settings)
+        }
+
+        binding.llClient.setOnClickListener {
             findNavController().navigate(R.id.action_home2client_settings)
         }
 
         return root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 状态栏显示黑色
+        setStatusBarAndNavBar(requireActivity().window, Color.WHITE, true)
     }
 
     override fun onDestroyView() {

@@ -13,8 +13,11 @@
         <action android:id="@+id/action_home2client_settings"
             app:destination="@+id/navigation_client_settings"/>
 
-        <action android:id="@+id/action_home2server_sftp"
-            app:destination="@+id/navigation_server_sftp"/>
+        <action android:id="@+id/action_home2server_settings"
+            app:destination="@+id/navigation_server_settings"/>
+
+        <action android:id="@+id/action_home2introduce"
+            app:destination="@+id/navigation_introduce"/>
     </fragment>
     <fragment
         android:id="@+id/navigation_client_settings"
@@ -24,6 +27,13 @@
             app:destination="@+id/navigation_client_sftp"/>
         <action android:id="@+id/action_client_settings2scan_code"
             app:destination="@+id/navigation_scan_code"/>
+    </fragment>
+    <fragment
+        android:id="@+id/navigation_server_settings"
+        android:name="com.example.ftp.ui.home.ServerSettingsFragment"
+        tools:layout="@layout/fragment_server_settings" >
+        <action android:id="@+id/action_server_settings2server_sftp"
+            app:destination="@+id/navigation_server_sftp"/>
     </fragment>
     <fragment
         android:id="@+id/navigation_server_sftp"
@@ -37,4 +47,8 @@
         android:id="@+id/navigation_scan_code"
         android:name="com.example.ftp.ui.home.ScanCodeFragment"
         tools:layout="@layout/fragment_scan_code" />
+    <fragment
+        android:id="@+id/navigation_introduce"
+        android:name="com.example.ftp.ui.home.IntroduceFragment"
+        tools:layout="@layout/fragment_introduce" />
 </navigation>

@@ -3,7 +3,9 @@ package com.example.ftp.service
 import android.content.Context
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
+import android.text.TextUtils
 import com.example.ftp.provider.GetProvider
+import com.example.ftp.utils.MySPUtil
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory
 import org.apache.sshd.server.ServerBuilder
 import org.apache.sshd.server.SshServer
@@ -31,13 +33,29 @@ class SftpServerModel{
         System.setProperty("user.home", p)
 
         sshd = SshServerBuilder().build()
+
+        val info = MySPUtil.getInstance().serverConnectInfo
         // 设置服务器端口
-        sshd.port = 2222
+        sshd.port = if (info.port < 0) {
+            2222
+        } else {
+            info.port
+        }
+        val userName = if (TextUtils.isEmpty(info.name)) {
+            "ftpuser"
+        } else {
+            info.name
+        }
+        val userPw = if (TextUtils.isEmpty(info.pw)) {
+            "12345"
+        } else {
+            info.pw
+        }
 
         // 设置服务器认证
         sshd.passwordAuthenticator = PasswordAuthenticator { username, password, session ->
             // 在这里验证用户名和密码
-            username == "ftpuser" && password == "12345"
+            username == userName && password == userPw
         }
 
         // 设置 SSH 密钥生成器

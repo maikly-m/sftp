@@ -595,3 +595,9 @@ fun isFolderNameValid(folderName: String): Boolean {
     return true
 }
 
+fun isIPAddress(address: String): Boolean {
+    val ipv4Regex = Regex("^((25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\\.){3}(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})$")
+    val ipv6Regex = Regex("^([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4}$")
+    return ipv4Regex.matches(address) || ipv6Regex.matches(address)
+}
+

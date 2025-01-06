@@ -93,9 +93,9 @@ dependencies {
     implementation(libs.lottie)
 
     // ftp
-    implementation(libs.ftpserver.core)
-    implementation(files("../libs/ftp4j-1.7.2.jar"))
-    implementation(libs.commons.net) // 替换为最新版本
+//    implementation(libs.ftpserver.core)
+//    implementation(files("../libs/ftp4j-1.7.2.jar"))
+//    implementation(libs.commons.net) // 替换为最新版本
 
     // sftp
     implementation(libs.jsch)//ssh
@@ -107,8 +107,8 @@ dependencies {
 
 
     // debug的时候导入，需要日志
-    debugImplementation(libs.slf4j.api) // SLF4J API
-    debugImplementation(libs.slf4j.simple)
+//    debugImplementation(libs.slf4j.api) // SLF4J API
+//    debugImplementation(libs.slf4j.simple)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

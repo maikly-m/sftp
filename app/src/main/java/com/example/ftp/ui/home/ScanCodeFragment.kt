@@ -1,5 +1,6 @@
 package com.example.ftp.ui.home
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,6 +10,7 @@ import androidx.fragment.app.setFragmentResult
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.ftp.databinding.FragmentScanCodeBinding
+import com.example.ftp.utils.setStatusBarAndNavBar
 import com.google.zxing.Result
 import com.journeyapps.barcodescanner.BarcodeView
 import com.journeyapps.barcodescanner.ViewfinderView
@@ -75,6 +77,8 @@ class ScanCodeFragment : Fragment() {
         super.onResume()
         // 启动扫描
         barcodeView.resume()
+        // 状态栏显示黑色
+        // setStatusBarAndNavBar(requireActivity().window, Color.WHITE, true)
     }
 
     override fun onPause() {

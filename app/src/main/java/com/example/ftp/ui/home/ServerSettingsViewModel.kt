@@ -4,7 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
-class ClientSettingsViewModel : ViewModel() {
+class ServerSettingsViewModel : ViewModel() {
 
     var etIp: String? = null
     var etPort: String? = null

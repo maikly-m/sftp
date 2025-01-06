@@ -6,6 +6,7 @@ package com.example.ftp.utils;
 
 import android.text.TextUtils;
 
+import com.example.ftp.bean.ConnectInfo;
 import com.example.ftp.utils.gson.GsonUtil;
 import com.example.ftp.utils.gson.Gsons;
 
@@ -47,11 +48,25 @@ public class MySPUtil {
     }
 
     public static final String SERVER_IP = "server_ip";
+    public static final String SERVER_PORT = "server_port";
+    public static final String SERVER_NAME = "server_name";
+    public static final String SERVER_PW = "server_pw";
 
-    public void setServerIp(String s){
-        spUtils.put(SERVER_IP, s);
+    public static final String SERVER_CONNECT_INFO = "server_connect_info";
+    public static final String CLIENT_CONNECT_INFO = "client_connect_info";
+
+    public void setServerConnectInfo(ConnectInfo info){
+        setObject(SERVER_CONNECT_INFO, info);
     }
-    public String getServerIp(){
-        return spUtils.getString(SERVER_IP, "");
+    public ConnectInfo getServerConnectInfo(){
+        return getObject(SERVER_CONNECT_INFO, ConnectInfo.class);
     }
+
+    public void setClientConnectInfo(ConnectInfo info){
+        setObject(CLIENT_CONNECT_INFO, info);
+    }
+    public ConnectInfo getClientConnectInfo(){
+        return getObject(CLIENT_CONNECT_INFO, ConnectInfo.class);
+    }
+
 }

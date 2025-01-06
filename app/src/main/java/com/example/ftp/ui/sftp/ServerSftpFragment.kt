@@ -20,11 +20,16 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
+import com.example.ftp.bean.ConnectInfo
 import com.example.ftp.databinding.FragmentServerSftpBinding
 import com.example.ftp.service.SftpServerService
+import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.generateQRCode
 import com.example.ftp.utils.getLocalIpAddress
 import com.example.ftp.utils.grantExternalStorage
+import com.example.ftp.utils.gson.GsonUtil
+import com.example.ftp.utils.showToast
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
@@ -52,20 +57,34 @@ class ServerSftpFragment : Fragment() {
         _binding = FragmentServerSftpBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
+
+        binding.layoutTitle.ivBack.setOnClickListener {
+            findNavController().popBackStack()
+        }
+        binding.layoutTitle.tvName.text = "服务端"
+
         initView()
 
         viewModel.text.observe(viewLifecycleOwner){
             if (!TextUtils.isEmpty(it)) {
-                binding.textServer.text = it
-                // 要生成二维码的内容
-                val qrContent = it
-                // 调用生成二维码的方法
-                val bitmap = generateQRCode(qrContent)
-                if (bitmap != null) {
-                    binding.ivCode.setImageBitmap(bitmap)
-                }
+                binding.llServer.visibility = View.VISIBLE
+                // 获取到了ip
+                 MySPUtil.getInstance().serverConnectInfo?.let { info ->
+                     binding.etIp.text = it
+                     binding.etPort.text = "${info.port}"
+                     binding.etName.text = info.name
+                     binding.etPw.text = info.pw
+                     // 要生成二维码的内容
+                     val qrContent = ConnectInfo(it, info.port, info.name, info.pw)
+                     // 调用生成二维码的方法
+                     val bitmap = generateQRCode(GsonUtil.toJson(qrContent))
+                     if (bitmap != null) {
+                         binding.ivCode.setImageBitmap(bitmap)
+                     }
+                 }
             } else {
-                binding.textServer.text = "null"
+                binding.tvCodeTip.text = "无法获取到IP"
+                binding.llServer.visibility = View.INVISIBLE
             }
         }
 
@@ -97,7 +116,7 @@ class ServerSftpFragment : Fragment() {
                     storagePermissionLauncher.launch(intent)
                 } catch (e: ActivityNotFoundException) {
                     e.printStackTrace()
-                    Toast.makeText(requireContext(), "无法打开文件访问权限设置", Toast.LENGTH_SHORT).show()
+                    showToast("无法打开文件访问权限设置")
                 }
             } else {
                 startFtpServer() // 权限已获取，启动 FTP 服务器
