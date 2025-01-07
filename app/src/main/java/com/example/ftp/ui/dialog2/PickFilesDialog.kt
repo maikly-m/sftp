@@ -359,18 +359,19 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
             fun bind(item: File) {
                 // 强制立即更新绑定数据到视图
                 binding.executePendingBindings()
-                binding.tvName.text = item.name
+
                 binding.tvTime.text = formatTimeWithSimpleDateFormat(item.lastModified())
                 if (item.isDirectory) {
-                    binding.ivIcon.setImageResource(R.drawable.format_folder_smartlock)
+                    binding.tvName.text = item.name
+                    binding.ivIcon.setImageResource(R.drawable.svg_dir_icon)
                     if (showDownloadIcon){
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
                             checkList[adapterPosition] = !checkList[adapterPosition]
                             if (checkList[adapterPosition]) {
-                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_015)
+                                binding.ivSelect.setImageResource(R.drawable.svg_select_icon)
                             } else {
-                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_000)
+                                binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                             }
                         }
                     }else{
@@ -380,15 +381,15 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
                         }
                     }
                 } else {
-                    binding.ivIcon.setImageResource(R.drawable.format_unknown)
+                    binding.ivIcon.setImageResource(R.drawable.svg_file_unknown_icon)
                     if (showDownloadIcon){
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
                             checkList[adapterPosition] = !checkList[adapterPosition]
                             if ( checkList[adapterPosition]) {
-                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_015)
+                                binding.ivSelect.setImageResource(R.drawable.svg_select_icon)
                             } else {
-                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_000)
+                                binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                             }
                         }
                     }else{
@@ -401,9 +402,9 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
                 }
 
                 if ( checkList[adapterPosition]) {
-                    binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_015)
+                    binding.ivSelect.setImageResource(R.drawable.svg_select_icon)
                 } else {
-                    binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_000)
+                    binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                 }
 
             }

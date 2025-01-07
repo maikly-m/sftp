@@ -28,14 +28,19 @@ import com.example.ftp.databinding.FragmentClientSftpBinding
 import com.example.ftp.databinding.ItemListFileBinding
 import com.example.ftp.databinding.ItemListNameBinding
 import com.example.ftp.databinding.ItemSortNameBinding
+import com.example.ftp.databinding.PopuWindowBottomBinding
 import com.example.ftp.databinding.PopuWindowSortFileBinding
 import com.example.ftp.event.ClientMessageEvent
+import com.example.ftp.provider.GetProvider
 import com.example.ftp.service.SftpClientService
 import com.example.ftp.ui.dialog2.LoadingDialog
 import com.example.ftp.ui.dialog2.PickFilesDialog
 import com.example.ftp.ui.dialog2.ProgressDialog
 import com.example.ftp.ui.format
+import com.example.ftp.ui.toReadableFileSize
+import com.example.ftp.utils.DisplayUtils
 import com.example.ftp.utils.MySPUtil
+import com.example.ftp.utils.formatTimeWithSimpleDateFormat
 import com.example.ftp.utils.isFileNameValid
 import com.example.ftp.utils.isFolderNameValid
 import com.example.ftp.utils.showToast
@@ -99,10 +104,15 @@ class ClientSftpFragment : Fragment() {
             //select cancel
             viewModel.showDownloadIcon.value = false
         }
+        binding.fab.setOnClickListener {
+            //todo
+            binding.fab.visibility = View.GONE
+            showBottomPopupWindow(binding.root)
+        }
 
         binding.layoutTitleFile.llSort.setOnClickListener {
             // show sort
-            showPopupWindow(it)
+            showSortPopupWindow(it)
             binding.layoutTitleFile.ivSort.run {
                 // 创建旋转动画，参数是旋转角度
                 val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation + 180f)
@@ -392,31 +402,7 @@ class ClientSftpFragment : Fragment() {
         listFileAdapter = ListFileAdapter(Vector<ChannelSftp.LsEntry>(), mutableListOf())
         rv.adapter = listFileAdapter
 
-        binding.btnUpload.setOnClickListener {
-            // 打开dialog选择
-            pickFilesDialog = PickFilesDialog.newInstance(false)
-            pickFilesDialog!!.show(requireActivity())
-        }
 
-        binding.btnMkdir.setOnClickListener {
-            showInputDialog(requireContext(), "请输入文件夹名字",
-                onConfirm = {
-                    if (TextUtils.isEmpty(it)){
-                        showToast("请输入名字")
-                    }else{
-                        // 检验是否合规
-                        // 文件夹
-                        if (!isFolderNameValid(it)){
-                            showToast("名字非法")
-                            return@showInputDialog
-                        }
-                        viewModel.mkdir(sftpClientService, it)
-                    }
-                },
-                onCancel = {
-
-                }, )
-        }
 
         binding.btnDownload.setOnClickListener {
             //下载
@@ -487,7 +473,63 @@ class ClientSftpFragment : Fragment() {
         }
     }
 
-    private fun showPopupWindow(anchorView: View) {
+    private fun showBottomPopupWindow(anchorView: View) {
+        // Inflate the popup_layout.xml
+        val inflater = LayoutInflater.from(requireContext())
+        val popupView = PopuWindowBottomBinding.inflate(inflater, null, false)
+
+        // Initialize the PopupWindow
+        sortPopupWindow = PopupWindow(
+            popupView.root,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true // Focusable
+        )
+
+        // Set PopupWindow background (required for dismissing on outside touch)
+        sortPopupWindow?.setBackgroundDrawable(resources.getDrawable(R.drawable.bg_popu_window))
+        sortPopupWindow?.isOutsideTouchable = true
+
+        popupView.btnUpload.setOnClickListener {
+            // 打开dialog选择
+            pickFilesDialog = PickFilesDialog.newInstance(false)
+            pickFilesDialog!!.show(requireActivity())
+        }
+
+        popupView.btnMkdir.setOnClickListener {
+            showInputDialog(requireContext(), "请输入文件夹名字",
+                onConfirm = {
+                    if (TextUtils.isEmpty(it)){
+                        showToast("请输入名字")
+                    }else{
+                        // 检验是否合规
+                        // 文件夹
+                        if (!isFolderNameValid(it)){
+                            showToast("名字非法")
+                            return@showInputDialog
+                        }
+                        viewModel.mkdir(sftpClientService, it)
+                    }
+                },
+                onCancel = {
+
+                }, )
+        }
+
+        sortPopupWindow?.setOnDismissListener {
+            binding.fab.visibility = View.VISIBLE
+
+        }
+        // Show the PopupWindow
+        sortPopupWindow?.showAsDropDown(anchorView,
+            DisplayUtils.getScreenWidth(GetProvider.get().context)/24,
+            -DisplayUtils.dp2px(GetProvider.get().context, 60f)) // Adjust position relative to the anchor view
+
+        // Alternatively, use showAtLocation for custom positioning
+        // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
+    }
+
+    private fun showSortPopupWindow(anchorView: View) {
         // Inflate the popup_layout.xml
         val inflater = LayoutInflater.from(requireContext())
         val popupView = PopuWindowSortFileBinding.inflate(inflater, null, false)
@@ -684,17 +726,17 @@ class ClientSftpFragment : Fragment() {
                 // 强制立即更新绑定数据到视图
                 binding.executePendingBindings()
                 binding.tvName.text = item.filename
-                binding.tvTime.text = item.attrs.mtimeString
+                binding.tvTime.text = formatTimeWithSimpleDateFormat(item.attrs.mTime * 1000L)
                 if (item.attrs.isDir) {
-                    binding.ivIcon.setImageResource(R.drawable.format_folder_smartlock)
+                    binding.ivIcon.setImageResource(R.drawable.svg_dir_icon)
                     if (viewModel.showDownloadIcon.value == true) {
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
                             checkList[adapterPosition] = !checkList[adapterPosition]
                             if (checkList[adapterPosition]) {
-                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_015)
+                                binding.ivSelect.setImageResource(R.drawable.svg_select_icon)
                             } else {
-                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_000)
+                                binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                             }
                         }
                     } else {
@@ -710,15 +752,19 @@ class ClientSftpFragment : Fragment() {
                         }
                     }
                 } else {
-                    binding.ivIcon.setImageResource(R.drawable.format_unknown)
+                    if (item.attrs.isReg) {
+                        // 加上文件大小
+                        binding.tvTime.text = binding.tvTime.text.toString() + "   ${item.attrs.size.toReadableFileSize()}"
+                    }
+                    binding.ivIcon.setImageResource(R.drawable.svg_file_unknown_icon)
                     if (viewModel.showDownloadIcon.value == true) {
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
                             checkList[adapterPosition] = !checkList[adapterPosition]
                             if (checkList[adapterPosition]) {
-                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_015)
+                                binding.ivSelect.setImageResource(R.drawable.svg_select_icon)
                             } else {
-                                binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_000)
+                                binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                             }
                         }
                     } else {
@@ -731,9 +777,9 @@ class ClientSftpFragment : Fragment() {
                 }
 
                 if (checkList[adapterPosition]) {
-                    binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_015)
+                    binding.ivSelect.setImageResource(R.drawable.svg_select_icon)
                 } else {
-                    binding.ivSelect.setImageResource(R.drawable.abc_btn_radio_to_on_mtrl_000)
+                    binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                 }
 
             }
