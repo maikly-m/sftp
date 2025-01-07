@@ -3,17 +3,17 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cl"
-    android:background="@color/white"
     android:layout_width="match_parent"
     android:layout_height="40dp">
 
     <ImageView
-        android:src="@drawable/gdpr_back"
+        android:background="@drawable/bg_ripple_white_4_corner"
+        android:src="@drawable/svg_left_icon"
         android:id="@+id/iv_back"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         android:layout_marginStart="5dp"
-        android:padding="8dp"
+        android:padding="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

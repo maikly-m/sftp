@@ -47,8 +47,9 @@ public class MySPUtil {
         return null;
     }
 
-    public static final String SORT_TYPE = "sort_type";
-    public static final String SERVER_PORT = "server_port";
+    public static final String SERVER_SORT_TYPE = "server_sort_type";
+    public static final String CLIENT_SORT_TYPE = "client_sort_type";
+    public static final String DOWNLOAD_SAVE_PATH = "download_save_path";
     public static final String SERVER_NAME = "server_name";
     public static final String SERVER_PW = "server_pw";
 
@@ -69,11 +70,25 @@ public class MySPUtil {
         return getObject(CLIENT_CONNECT_INFO, ConnectInfo.class);
     }
 
-    public void setSortType(int type){
-        spUtils.put(SORT_TYPE, type);
+    public void setServerSortType(int type){
+        spUtils.put(SERVER_SORT_TYPE, type);
     }
-    public int getSortType(){
-        return spUtils.getInt(SORT_TYPE, 0);
+    public int getServerSortType(){
+        return spUtils.getInt(SERVER_SORT_TYPE, 0);
+    }
+
+    public void setClientSortType(int type){
+        spUtils.put(CLIENT_SORT_TYPE, type);
+    }
+    public int getClientSortType(){
+        return spUtils.getInt(CLIENT_SORT_TYPE, 0);
+    }
+
+    public void setDownloadSavePath(String s){
+        spUtils.put(DOWNLOAD_SAVE_PATH, s);
+    }
+    public String getDownloadSavePath(){
+        return spUtils.getString(DOWNLOAD_SAVE_PATH, "/");
     }
 
 }

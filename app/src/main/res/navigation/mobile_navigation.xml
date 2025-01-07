@@ -27,7 +27,13 @@
             app:destination="@+id/navigation_client_sftp"/>
         <action android:id="@+id/action_client_settings2scan_code"
             app:destination="@+id/navigation_scan_code"/>
+        <action android:id="@+id/action_client_settings2client_settings_more"
+            app:destination="@+id/navigation_client_settings_more"/>
     </fragment>
+    <fragment
+        android:id="@+id/navigation_client_settings_more"
+        android:name="com.example.ftp.ui.home.ClientSettingsMoreFragment"
+        tools:layout="@layout/fragment_client_settings_more" />
     <fragment
         android:id="@+id/navigation_server_settings"
         android:name="com.example.ftp.ui.home.ServerSettingsFragment"

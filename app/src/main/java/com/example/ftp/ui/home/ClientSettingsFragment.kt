@@ -57,6 +57,12 @@ class ClientSettingsFragment : Fragment() {
         }
         binding.layoutTitle.tvName.text = "客户端"
 
+        binding.layoutTitle.ivRight.visibility = View.VISIBLE
+        binding.layoutTitle.ivRight.setImageResource(R.drawable.svg_more_icon)
+        binding.layoutTitle.ivRight.setOnClickListener {
+            findNavController().navigate(R.id.action_client_settings2client_settings_more)
+        }
+
         initView()
 
         return root

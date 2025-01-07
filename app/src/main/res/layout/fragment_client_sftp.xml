@@ -26,59 +26,33 @@
         app:layout_constraintTop_toBottomOf="@+id/layout_title_browser"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/cl_bottom"
+        app:layout_constraintBottom_toBottomOf="parent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <LinearLayout
-        android:orientation="horizontal"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/rv"
-        app:layout_constraintBottom_toBottomOf="parent"
+    <include
         android:visibility="gone"
-        android:id="@+id/cl_bottom_click"
-        android:background="@color/white"
+        android:layout_marginBottom="20dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         android:layout_width="match_parent"
-        android:layout_height="50dp">
-
-        <Button
-            android:layout_marginHorizontal="3dp"
-            android:layout_gravity="center"
-            android:id="@+id/btn_del"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="删除" />
-
-        <Button
-            android:layout_marginHorizontal="3dp"
-            android:layout_gravity="center"
-            android:id="@+id/btn_download"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="下载" />
-
-        <Button
-            android:layout_marginHorizontal="3dp"
-            android:layout_gravity="center"
-            android:id="@+id/btn_rename"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="重命名" />
-    </LinearLayout>
+        android:layout_height="60dp"
+        layout="@layout/layout_bottom_select"
+        android:id="@+id/layout_bottom_select" />
 
     <!-- 悬浮按钮 -->
-    <ImageView
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:contentDescription="fab"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         android:id="@+id/fab"
-        android:padding="10dp"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginBottom="30dp"
-        android:layout_marginEnd="30dp"
-        android:src="@drawable/svg_float_btn"/>
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"
+        app:backgroundTint="@color/color_F3F6FB"
+        app:fabSize="normal"
+        app:rippleColor="@color/color_EEF0F4"
+        app:srcCompat="@drawable/icon_add"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout >

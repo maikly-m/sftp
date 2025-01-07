@@ -28,8 +28,8 @@ import com.example.ftp.databinding.FragmentClientSftpBinding
 import com.example.ftp.databinding.ItemListFileBinding
 import com.example.ftp.databinding.ItemListNameBinding
 import com.example.ftp.databinding.ItemSortNameBinding
-import com.example.ftp.databinding.PopuWindowBottomBinding
-import com.example.ftp.databinding.PopuWindowSortFileBinding
+import com.example.ftp.databinding.PopupWindowBottomBinding
+import com.example.ftp.databinding.PopupWindowSortFileBinding
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.service.SftpClientService
@@ -41,8 +41,10 @@ import com.example.ftp.ui.toReadableFileSize
 import com.example.ftp.utils.DisplayUtils
 import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.formatTimeWithSimpleDateFormat
+import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.isFileNameValid
 import com.example.ftp.utils.isFolderNameValid
+import com.example.ftp.utils.showCustomInputDialog
 import com.example.ftp.utils.showToast
 import com.jcraft.jsch.ChannelSftp
 import org.greenrobot.eventbus.EventBus
@@ -53,7 +55,7 @@ import java.util.Vector
 
 class ClientSftpFragment : Fragment() {
 
-    private var sortPopupWindow: PopupWindow? = null
+    private var popupWindow: PopupWindow? = null
     private var pickFilesDialog: PickFilesDialog? = null
     private var loadingDialog: LoadingDialog? = null
 
@@ -92,7 +94,7 @@ class ClientSftpFragment : Fragment() {
 
         binding.layoutTitleFile.ivSelect.setOnClickListener {
             // show select-all
-            viewModel.showDownloadIcon.value = true
+            viewModel.showMultiSelectIcon.value = true
         }
 
         binding.layoutTitleFile.tvSelectAll.setOnClickListener {
@@ -102,12 +104,14 @@ class ClientSftpFragment : Fragment() {
 
         binding.layoutTitleFile.tvCancel.setOnClickListener {
             //select cancel
-            viewModel.showDownloadIcon.value = false
+            viewModel.showMultiSelectIcon.value = false
         }
         binding.fab.setOnClickListener {
-            //todo
-            binding.fab.visibility = View.GONE
-            showBottomPopupWindow(binding.root)
+            if (popupWindow != null && popupWindow!!.isShowing) {
+                popupWindow!!.dismiss()
+            } else {
+                showBottomPopupWindow(binding.root)
+            }
         }
 
         binding.layoutTitleFile.llSort.setOnClickListener {
@@ -128,8 +132,8 @@ class ClientSftpFragment : Fragment() {
 
         // 监听返回键操作
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
-            if (viewModel.showDownloadIcon.value == true) {
-                viewModel.showDownloadIcon.value = false
+            if (viewModel.showMultiSelectIcon.value == true) {
+                viewModel.showMultiSelectIcon.value = false
                 return@addCallback
             }
             if (System.currentTimeMillis() - backPressedTime < doubleBackToExitInterval) {
@@ -213,7 +217,7 @@ class ClientSftpFragment : Fragment() {
             if (it > 0f) {
                 //show
                 if (progressDialog != null && progressDialog!!.isVisible) {
-                    progressDialog!!.setProgress(it.format(2) + "%")
+                    progressDialog!!.setProgress(it.format(0) + "%")
                     return@observe
                 } else {
                     progressDialog?.dismissAllowingStateLoss()
@@ -233,7 +237,7 @@ class ClientSftpFragment : Fragment() {
             }
             progressDialog?.dismissAllowingStateLoss()
 
-            viewModel.showDownloadIcon.value = false
+            viewModel.showMultiSelectIcon.value = false
         }
 
         viewModel.downloadFileProgress.observe(viewLifecycleOwner) {
@@ -260,7 +264,7 @@ class ClientSftpFragment : Fragment() {
             // 刷新列表
             viewModel.listFile(sftpClientService, viewModel.getCurrentFilePath())
 
-            viewModel.showDownloadIcon.value = false
+            viewModel.showMultiSelectIcon.value = false
         }
 
         viewModel.renameFile.observe(viewLifecycleOwner) {
@@ -272,7 +276,7 @@ class ClientSftpFragment : Fragment() {
             // 刷新列表
             viewModel.listFile(sftpClientService, viewModel.getCurrentFilePath())
 
-            viewModel.showDownloadIcon.value = false
+            viewModel.showMultiSelectIcon.value = false
         }
 
         viewModel.mkdir.observe(viewLifecycleOwner) {
@@ -285,20 +289,21 @@ class ClientSftpFragment : Fragment() {
             viewModel.listFile(sftpClientService, viewModel.getCurrentFilePath())
         }
 
-        viewModel.showDownloadIcon.observe(viewLifecycleOwner) {
+        viewModel.showMultiSelectIcon.observe(viewLifecycleOwner) {
             if (it) {
                 binding.layoutTitleFile.llRegular.visibility = View.GONE
                 binding.layoutTitleFile.llSelect.visibility = View.VISIBLE
 
-                binding.clBottomClick.visibility = View.VISIBLE
+                binding.layoutBottomSelect.container.visibility = View.VISIBLE
                 listFileAdapter.checkList.clear()
                 listFileAdapter.checkList.addAll(MutableList(listFileAdapter.items.size) { false })
             } else {
                 binding.layoutTitleFile.llRegular.visibility = View.VISIBLE
                 binding.layoutTitleFile.llSelect.visibility = View.GONE
 
-                binding.clBottomClick.visibility = View.GONE
+                binding.layoutBottomSelect.container.visibility = View.GONE
             }
+
             listFileAdapter?.notifyDataSetChanged()
         }
 
@@ -317,7 +322,7 @@ class ClientSftpFragment : Fragment() {
         viewModel.changeSelectType.observe(viewLifecycleOwner) {
             if (it < viewModel.sortTypes.size){
                 binding.layoutTitleFile.tvSort.text = viewModel.sortTypes[it]
-                MySPUtil.getInstance().sortType = it
+                MySPUtil.getInstance().serverSortType = it
                 //show
                 d = viewModel.listFileData ?: Vector<ChannelSftp.LsEntry>()
                 listFileAdapter.items.clear()
@@ -404,7 +409,7 @@ class ClientSftpFragment : Fragment() {
 
 
 
-        binding.btnDownload.setOnClickListener {
+        binding.layoutBottomSelect.btnDownload.setOnClickListener {
             //下载
             val files = mutableListOf<ChannelSftp.LsEntry>()
             listFileAdapter.checkList.forEachIndexed { index, b ->
@@ -414,9 +419,10 @@ class ClientSftpFragment : Fragment() {
                 }
             }
             viewModel.downloadFile(sftpClientService, files)
+            binding.layoutBottomSelect.container.visibility = View.GONE
         }
 
-        binding.btnDel.setOnClickListener {
+        binding.layoutBottomSelect.btnDelete.setOnClickListener {
             //删除
             val files = mutableListOf<ChannelSftp.LsEntry>()
             listFileAdapter.checkList.forEachIndexed { index, b ->
@@ -426,9 +432,10 @@ class ClientSftpFragment : Fragment() {
                 }
             }
             viewModel.deleteFiles(sftpClientService, files)
+            binding.layoutBottomSelect.container.visibility = View.GONE
         }
 
-        binding.btnRename.setOnClickListener {
+        binding.layoutBottomSelect.btnRename.setOnClickListener {
             val files = mutableListOf<ChannelSftp.LsEntry>()
             listFileAdapter.checkList.forEachIndexed { index, b ->
                 if (b) {
@@ -437,33 +444,35 @@ class ClientSftpFragment : Fragment() {
                 }
             }
             if (files.size == 1) {
-                // show dialog
-                showInputDialog(requireContext(), "请输入名字",
-                    onConfirm = {
-                        if (TextUtils.isEmpty(it)){
-                            showToast("请输入名字")
-                        }else{
-                            // 检验是否合规
-                            if (files[0].attrs.isReg) {
-                                // 文件
-                                if (!isFileNameValid(it)){
-                                    showToast("名字非法")
-                                    return@showInputDialog
-                                }
-                                viewModel.renameFile(sftpClientService, files[0], it)
-                            } else if(files[0].attrs.isDir){
-                                // 文件夹
-                                if (!isFolderNameValid(it)){
-                                    showToast("名字非法")
-                                    return@showInputDialog
-                                }
-                                viewModel.renameFile(sftpClientService, files[0], it)
-                            }
-                        }
-                    },
-                    onCancel = {
+                showCustomInputDialog(requireContext(), "重命名", "请输入名字", {
 
-                    }, )
+                }){
+                    if (TextUtils.isEmpty(it)){
+                        showToast("请输入名字")
+                        false
+                    }else{
+                        // 检验是否合规
+                        if (files[0].attrs.isReg) {
+                            // 文件
+                            if (!isFileNameValid(it)){
+                                showToast("名字非法")
+                                return@showCustomInputDialog false
+                            }
+                            viewModel.renameFile(sftpClientService, files[0], it)
+                            true
+                        } else if(files[0].attrs.isDir){
+                            // 文件夹
+                            if (!isFolderNameValid(it)){
+                                showToast("名字非法")
+                                return@showCustomInputDialog false
+                            }
+                            viewModel.renameFile(sftpClientService, files[0], it)
+                            true
+                        }else{
+                            true
+                        }
+                    }
+                }
 
             } else if (files.size == 0){
                 showToast("重命名需要选择一个文件")
@@ -476,10 +485,10 @@ class ClientSftpFragment : Fragment() {
     private fun showBottomPopupWindow(anchorView: View) {
         // Inflate the popup_layout.xml
         val inflater = LayoutInflater.from(requireContext())
-        val popupView = PopuWindowBottomBinding.inflate(inflater, null, false)
+        val popupView = PopupWindowBottomBinding.inflate(inflater, null, false)
 
         // Initialize the PopupWindow
-        sortPopupWindow = PopupWindow(
+        popupWindow = PopupWindow(
             popupView.root,
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -487,43 +496,44 @@ class ClientSftpFragment : Fragment() {
         )
 
         // Set PopupWindow background (required for dismissing on outside touch)
-        sortPopupWindow?.setBackgroundDrawable(resources.getDrawable(R.drawable.bg_popu_window))
-        sortPopupWindow?.isOutsideTouchable = true
+        popupWindow?.setBackgroundDrawable(resources.getDrawable(R.drawable.bg_popup_window_2))
+        popupWindow?.isOutsideTouchable = true
 
         popupView.btnUpload.setOnClickListener {
             // 打开dialog选择
             pickFilesDialog = PickFilesDialog.newInstance(false)
             pickFilesDialog!!.show(requireActivity())
+            popupWindow?.dismiss()
         }
 
         popupView.btnMkdir.setOnClickListener {
-            showInputDialog(requireContext(), "请输入文件夹名字",
-                onConfirm = {
-                    if (TextUtils.isEmpty(it)){
-                        showToast("请输入名字")
-                    }else{
-                        // 检验是否合规
-                        // 文件夹
-                        if (!isFolderNameValid(it)){
-                            showToast("名字非法")
-                            return@showInputDialog
-                        }
-                        viewModel.mkdir(sftpClientService, it)
-                    }
-                },
-                onCancel = {
+            showCustomInputDialog(requireContext(), "文件夹", "请输入名字", {
 
-                }, )
+            }){
+                if (TextUtils.isEmpty(it)){
+                    showToast("请输入名字")
+                    false
+                }else{
+                    // 检验是否合规
+                    // 文件夹
+                    if (!isFolderNameValid(it)){
+                        showToast("名字非法")
+                        return@showCustomInputDialog false
+                    }
+                    viewModel.mkdir(sftpClientService, it)
+                    true
+                }
+            }
         }
 
-        sortPopupWindow?.setOnDismissListener {
-            binding.fab.visibility = View.VISIBLE
+        popupWindow?.setOnDismissListener {
+
 
         }
         // Show the PopupWindow
-        sortPopupWindow?.showAsDropDown(anchorView,
-            DisplayUtils.getScreenWidth(GetProvider.get().context)/24,
-            -DisplayUtils.dp2px(GetProvider.get().context, 60f)) // Adjust position relative to the anchor view
+        popupWindow?.showAsDropDown(anchorView,
+            (DisplayUtils.getScreenWidth(GetProvider.get().context) -DisplayUtils.dp2px(GetProvider.get().context, 160f)) /2,
+            -DisplayUtils.dp2px(GetProvider.get().context, 80f)) // Adjust position relative to the anchor view
 
         // Alternatively, use showAtLocation for custom positioning
         // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
@@ -532,10 +542,10 @@ class ClientSftpFragment : Fragment() {
     private fun showSortPopupWindow(anchorView: View) {
         // Inflate the popup_layout.xml
         val inflater = LayoutInflater.from(requireContext())
-        val popupView = PopuWindowSortFileBinding.inflate(inflater, null, false)
+        val popupView = PopupWindowSortFileBinding.inflate(inflater, null, false)
 
         // Initialize the PopupWindow
-        sortPopupWindow = PopupWindow(
+        popupWindow = PopupWindow(
             popupView.root,
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -543,8 +553,8 @@ class ClientSftpFragment : Fragment() {
         )
 
         // Set PopupWindow background (required for dismissing on outside touch)
-        sortPopupWindow?.setBackgroundDrawable(resources.getDrawable(R.drawable.bg_popu_window))
-        sortPopupWindow?.isOutsideTouchable = true
+        popupWindow?.setBackgroundDrawable(resources.getDrawable(R.drawable.bg_popup_window))
+        popupWindow?.isOutsideTouchable = true
 
 
         val recyclerView = popupView.rv
@@ -555,7 +565,7 @@ class ClientSftpFragment : Fragment() {
         val adapter = SortFileAdapter(viewModel.sortTypes)
         recyclerView.adapter = adapter
 
-        sortPopupWindow?.setOnDismissListener {
+        popupWindow?.setOnDismissListener {
             binding.layoutTitleFile.ivSort.run {
                 // 创建旋转动画，参数是旋转角度
                 val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation - 180f)
@@ -564,7 +574,7 @@ class ClientSftpFragment : Fragment() {
             }
         }
         // Show the PopupWindow
-        sortPopupWindow?.showAsDropDown(anchorView, 0, 10) // Adjust position relative to the anchor view
+        popupWindow?.showAsDropDown(anchorView, 0, 10) // Adjust position relative to the anchor view
 
         // Alternatively, use showAtLocation for custom positioning
         // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
@@ -612,7 +622,6 @@ class ClientSftpFragment : Fragment() {
         EventBus.getDefault().unregister(this)
     }
 
-    // 启动 FTP 服务器
     private fun startFtpClient() {
         if (isBound) {
             return
@@ -674,7 +683,7 @@ class ClientSftpFragment : Fragment() {
                 binding.executePendingBindings()
                 binding.tvName.text = item
                 binding.cl.setOnClickListener {
-                    if (viewModel.showDownloadIcon.value == true) {
+                    if (viewModel.showMultiSelectIcon.value == true) {
                         return@setOnClickListener
                     }
                     if (items.size - 1 > adapterPosition && adapterPosition > 0) {
@@ -692,9 +701,9 @@ class ClientSftpFragment : Fragment() {
 
                 if (items.last() == item) {
                     // 最后一项
-                    binding.tvName.setTextColor(Color.BLUE)
+                    binding.tvName.setTextColor(GetProvider.get().context.getColor(R.color.color_1296db))
                 } else {
-                    binding.tvName.setTextColor(Color.RED)
+                    binding.tvName.setTextColor(GetProvider.get().context.getColor(R.color.color_7F000000))
                 }
             }
         }
@@ -729,7 +738,7 @@ class ClientSftpFragment : Fragment() {
                 binding.tvTime.text = formatTimeWithSimpleDateFormat(item.attrs.mTime * 1000L)
                 if (item.attrs.isDir) {
                     binding.ivIcon.setImageResource(R.drawable.svg_dir_icon)
-                    if (viewModel.showDownloadIcon.value == true) {
+                    if (viewModel.showMultiSelectIcon.value == true) {
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
                             checkList[adapterPosition] = !checkList[adapterPosition]
@@ -747,7 +756,7 @@ class ClientSftpFragment : Fragment() {
                             viewModel.listFile(sftpClientService, fullPath)
                         }
                         binding.cl.setOnLongClickListener {
-                            viewModel.showDownloadIcon.value = true
+                            viewModel.showMultiSelectIcon.value = true
                             true
                         }
                     }
@@ -756,8 +765,8 @@ class ClientSftpFragment : Fragment() {
                         // 加上文件大小
                         binding.tvTime.text = binding.tvTime.text.toString() + "   ${item.attrs.size.toReadableFileSize()}"
                     }
-                    binding.ivIcon.setImageResource(R.drawable.svg_file_unknown_icon)
-                    if (viewModel.showDownloadIcon.value == true) {
+                    binding.ivIcon.setImageDrawable(getIcon4File(GetProvider.get().context, item.filename))
+                    if (viewModel.showMultiSelectIcon.value == true) {
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
                             checkList[adapterPosition] = !checkList[adapterPosition]
@@ -771,6 +780,10 @@ class ClientSftpFragment : Fragment() {
                         binding.ivSelect.visibility = View.GONE
                         binding.cl.setOnClickListener {
                             // other
+                        }
+                        binding.cl.setOnLongClickListener {
+                            viewModel.showMultiSelectIcon.value = true
+                            true
                         }
                     }
 
@@ -812,7 +825,7 @@ class ClientSftpFragment : Fragment() {
                     binding.ll.post {
                         notifyDataSetChanged()
                     }
-                    binding.ll.postDelayed({sortPopupWindow?.dismiss()},100)
+                    binding.ll.postDelayed({popupWindow?.dismiss()},100)
                 }
                 if (viewModel.changeSelectType.value == adapterPosition) {
                     binding.tvName.setTextColor(Color.BLUE)

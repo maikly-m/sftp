@@ -4,11 +4,9 @@ import android.os.Environment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.ftp.service.SftpClientService
+import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.showToast
 import com.example.ftp.utils.thread.SingleLiveEvent
-import com.jcraft.jsch.ChannelSftp
-import com.jcraft.jsch.SftpProgressMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -26,12 +24,27 @@ class PickFilesViewModel : ViewModel() {
     val listFile: LiveData<Int> = _listFile
     var listFileData: MutableList<File>? = null
 
+    val showMultiSelectIcon = SingleLiveEvent<Boolean>()
+    val showSelectAll = SingleLiveEvent<Boolean>()
+    val changeSelectType = SingleLiveEvent<Int>()
 
+    val sortTypes = mutableListOf(
+        "按名称",
+        "按类型",
+        "按大小升序",
+        "按大小降序",
+        "按时间升序",
+        "按时间降序",
+    )
 
     private val _listFileLoading = SingleLiveEvent<Int>()
     val listFileLoading: LiveData<Int> = _listFileLoading
 
     fun getCurrentFilePath() = currentPath
+
+    init {
+        changeSelectType.value = MySPUtil.getInstance().clientSortType
+    }
 
     fun listFile(path: String) {
         if (_listFileLoading.value == 1){
@@ -94,5 +107,7 @@ class PickFilesViewModel : ViewModel() {
             _listFileLoading.postValue(-1)
         }
     }
+
+
 
 }

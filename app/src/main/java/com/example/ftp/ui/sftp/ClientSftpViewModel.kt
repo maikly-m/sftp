@@ -1,11 +1,14 @@
 package com.example.ftp.ui.sftp
 
 import android.os.Environment
+import android.text.TextUtils
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ftp.service.SftpClientService
 import com.example.ftp.utils.MySPUtil
+import com.example.ftp.utils.ensureLocalDirectoryExists
+import com.example.ftp.utils.getFileNameFromPath
 import com.example.ftp.utils.normalizeFilePath
 import com.example.ftp.utils.showToast
 import com.example.ftp.utils.thread.SingleLiveEvent
@@ -26,7 +29,7 @@ class ClientSftpViewModel : ViewModel() {
     private var currentPath: String = "/"
     private var lastCurrentPath: String = "/"
 
-    val showDownloadIcon = SingleLiveEvent<Boolean>()
+    val showMultiSelectIcon = SingleLiveEvent<Boolean>()
     val showSelectAll = SingleLiveEvent<Boolean>()
     val changeSelectType = SingleLiveEvent<Int>()
 
@@ -73,7 +76,7 @@ class ClientSftpViewModel : ViewModel() {
     )
 
     init {
-        changeSelectType.value = MySPUtil.getInstance().sortType
+        changeSelectType.value = MySPUtil.getInstance().serverSortType
     }
 
     fun uploadFileInputStream(
@@ -309,12 +312,12 @@ class ClientSftpViewModel : ViewModel() {
         sftpClientService: SftpClientService?,
         absolutePath: String,
     ) {
-        _listFileLoading.postValue(1)
-        lastCurrentPath = currentPath
-        currentPath = absolutePath
         if (listFileJob != null && listFileJob?.isActive == true) {
             return
         }
+        lastCurrentPath = currentPath
+        currentPath = absolutePath
+        _listFileLoading.postValue(1)
         listFileJob = viewModelScope.launch(Dispatchers.IO) {
             // todo 可以切换到该目录下，或者不切换也行
             // sftpClientService?.getClient()?.cd(currentPath)
@@ -454,8 +457,12 @@ class ClientSftpViewModel : ViewModel() {
 
                 }
 
+                //按照配置下载到选定的目录
+                val parentPaths = MySPUtil.getInstance().downloadSavePath
                 // 所有文件都是基于sdcard创建的
-                val sdcardPath = Environment.getExternalStorageDirectory().absolutePath
+                val sdcardPath = normalizeFilePath(Environment.getExternalStorageDirectory().absolutePath+"/"+ parentPaths)
+                ensureLocalDirectoryExists(sdcardPath)
+                Timber.d("downloadFile sdcardPath: ${sdcardPath}")
                 for (i in srcFilePath.indices) {
 
                     val l = object : SftpProgressMonitor {
@@ -489,8 +496,8 @@ class ClientSftpViewModel : ViewModel() {
 
                         }
                     }
-                    dstFilePath[i] = "${sdcardPath}${dstFilePath[i]}"
-                    sftpClientService?.getClient()?.downloadFile(srcFilePath[i], dstFilePath[i], l)
+                    dstFilePath[i] = "${sdcardPath}/${getFileNameFromPath(dstFilePath[i])}"
+                    sftpClientService?.getClient()?.downloadFile(srcFilePath[i], normalizeFilePath(dstFilePath[i]), l)
                 }
             }
         }

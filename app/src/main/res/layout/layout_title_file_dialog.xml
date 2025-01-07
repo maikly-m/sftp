@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cl"
+    android:layout_width="match_parent"
+    android:layout_height="40dp">
+
+    <LinearLayout
+        android:id="@+id/ll_regular"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <TextView
+            android:paddingHorizontal="10dp"
+            android:layout_gravity="start|center_vertical"
+            android:id="@+id/tv_name"
+            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="选择文件"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:textSize="15sp" />
+        <LinearLayout
+            android:id="@+id/ll_sort"
+            android:orientation="horizontal"
+            android:layout_width="100dp"
+            android:layout_height="match_parent">
+            <TextView
+                android:layout_marginEnd="2dp"
+                android:paddingVertical="6dp"
+                android:layout_gravity="center"
+                android:gravity="end"
+                app:layout_constrainedWidth="true"
+                android:id="@+id/tv_sort"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:text="按时间降序"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <ImageView
+                android:layout_gravity="center"
+                android:src="@drawable/svg_down_icon"
+                android:id="@+id/iv_sort"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:padding="2dp" />
+        </LinearLayout>
+        <ImageView
+            android:layout_gravity="center"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/svg_all_select_tip"
+            android:id="@+id/iv_select"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp" />
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:visibility="gone"
+        android:id="@+id/ll_select"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_marginStart="5dp"
+            android:padding="6dp"
+            android:layout_gravity="center"
+            android:id="@+id/tv_select_all"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="全选"
+            android:textStyle="bold"
+            android:textColor="@color/color_1296db"
+            android:textSize="14sp" />
+        <TextView
+            android:padding="6dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:id="@+id/tv_tip"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="选择项目"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:textSize="14sp" />
+        <TextView
+            android:layout_marginEnd="5dp"
+            android:padding="6dp"
+            android:layout_gravity="center"
+            android:id="@+id/tv_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="取消"
+            android:textStyle="bold"
+            android:textColor="@color/color_1296db"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

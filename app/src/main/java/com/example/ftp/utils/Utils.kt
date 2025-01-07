@@ -1,6 +1,7 @@
 package com.example.ftp.utils
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
@@ -13,6 +14,8 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Point
 import android.graphics.Rect
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.InsetDrawable
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.net.wifi.WifiInfo
@@ -23,11 +26,15 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Size
+import android.view.LayoutInflater
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
+import com.example.ftp.R
+import com.example.ftp.databinding.DialogCustomInputBinding
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.utils.thread.AppExecutors
 import com.google.zxing.BarcodeFormat
@@ -594,10 +601,126 @@ fun isFolderNameValid(folderName: String): Boolean {
     // 文件夹名称合规
     return true
 }
+fun getFileNameFromPath(path: String): String {
+    return path.trimEnd('/').substringAfterLast('/')
+}
+
+fun isFullFolderNameValid(fullFolderName: String): Boolean {
+    // 检测全路径文件夹名是否为空或全是空白字符
+    if (fullFolderName.isBlank()) {
+        return false
+    }
+
+    // 定义非法字符的正则表达式
+    val invalidCharacters = Regex("[\\\\:*?\"<>|]")
+
+    // 检测是否包含非法字符
+    if (invalidCharacters.containsMatchIn(fullFolderName)) {
+        return false
+    }
+
+    // 文件夹名称合规
+    return true
+}
 
 fun isIPAddress(address: String): Boolean {
     val ipv4Regex = Regex("^((25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\\.){3}(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})$")
     val ipv6Regex = Regex("^([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4}$")
     return ipv4Regex.matches(address) || ipv6Regex.matches(address)
+}
+
+fun showCustomInputDialog(context: Context, title: String, hint: String, cancel: () -> Unit, ok: (s:String) -> Boolean,) {
+    // 加载自定义布局
+    val binding = DialogCustomInputBinding.inflate(LayoutInflater.from(context), null, false)
+    val dialogView = binding.root
+
+    replaceCursorStyle(context, binding.etInput)
+    binding.tvTitle.text = title
+    binding.etInput.setHint(hint)
+
+    // 创建 AlertDialog
+    val alertDialog = AlertDialog.Builder(context)
+        .setView(dialogView)
+        .setCancelable(false) // 点击外部是否可以取消
+        .create()
+
+    // 处理按钮点击事件
+    binding.btnCancel.setOnClickListener {
+        cancel()
+        alertDialog.dismiss() // 关闭对话框
+    }
+    binding.btnOk.setOnClickListener {
+        val input =  binding.etInput.text.toString()
+        if (ok(input)) {
+            alertDialog.dismiss() // 关闭对话框
+        } else {
+
+        }
+    }
+
+    // 显示对话框
+    alertDialog.show()
+}
+
+
+fun replaceCursorStyle(context: Context, et: EditText) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // For Android 10 and above (API 29+)
+        val cursorDrawable = context.resources.getDrawable(R.drawable.custom_cursor, null)
+        et.textCursorDrawable = cursorDrawable
+    } else {
+        // For Android 9 and below
+        val editorField = EditText::class.java.getDeclaredField("mEditor")
+        editorField.isAccessible = true
+        val editor = editorField.get(et)
+
+        val cursorDrawable = context.resources.getDrawable(R.drawable.custom_cursor)
+        val cursorField = editor.javaClass.getDeclaredField("mCursorDrawable")
+        cursorField.isAccessible = true
+        cursorField.set(editor, arrayOf(cursorDrawable, cursorDrawable))
+    }
+}
+
+fun getIcon4File(context: Context, filename: String): Drawable {
+    val extend = filename.substringAfterLast('.', "").lowercase()
+    val i = when (extend){
+         ""-> {
+             context.resources.getDrawable(R.drawable.svg_file_unknown_icon)
+         }
+         "text", "txt"-> {
+             context.resources.getDrawable(R.drawable.svg_text_icon)
+         }
+         "zip", "rar"-> {
+             context.resources.getDrawable(R.drawable.svg_zip_icon)
+         }
+         "word"-> {
+             context.resources.getDrawable(R.drawable.svg_word_icon)
+         }
+        "ppt"-> {
+            context.resources.getDrawable(R.drawable.svg_ppt_icon)
+        }
+        "pdf"-> {
+            context.resources.getDrawable(R.drawable.svg_pdf_icon)
+        }
+        "mp3","m4a","flac","wav","aac"-> {
+            context.resources.getDrawable(R.drawable.svg_music_icon)
+        }
+        "mp4","mkv","avi","mov","flv"-> {
+            context.resources.getDrawable(R.drawable.svg_media_icon)
+        }
+        "png","jpeg","jpg","gif","bmp"-> {
+            context.resources.getDrawable(R.drawable.svg_image_icon)
+        }
+        "apk"-> {
+            context.resources.getDrawable(R.drawable.svg_apk_icon)
+        }
+        else -> {
+            context.resources.getDrawable(R.drawable.svg_file_unknown_icon)
+        }
+    }
+    // 设置内边距：左、上、右、下
+    val padding = DisplayUtils.dp2px(context, 3f)
+    val insetDrawable = InsetDrawable(i, padding, padding, padding, padding)
+    return insetDrawable
 }
 

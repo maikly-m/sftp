@@ -1,5 +1,6 @@
 package com.example.ftp.ui.dialog2
 
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.content.DialogInterface
 import android.content.res.Configuration
@@ -14,6 +15,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.LinearLayout
+import android.widget.PopupWindow
 import androidx.activity.addCallback
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.DialogFragment
@@ -26,18 +29,20 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.ftp.R
 import com.example.ftp.databinding.DialogPickFilesBinding
 import com.example.ftp.databinding.ItemListFileBinding
-import com.example.ftp.databinding.ItemListNameBinding
 import com.example.ftp.databinding.ItemListNameDialogBinding
+import com.example.ftp.databinding.ItemSortNameBinding
+import com.example.ftp.databinding.PopupWindowSortFileBinding
 import com.example.ftp.event.ClientMessageEvent
-import com.example.ftp.ui.sftp.ClientSftpViewModel
+import com.example.ftp.provider.GetProvider
+import com.example.ftp.ui.toReadableFileSize
+import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.formatTimeWithSimpleDateFormat
+import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.getScreenSizeHeight
 import com.example.ftp.utils.getScreenSizeWidth
-import com.jcraft.jsch.ChannelSftp
 import org.greenrobot.eventbus.EventBus
 import timber.log.Timber
 import java.io.File
-import java.util.Vector
 
 open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
 
@@ -45,7 +50,6 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
     private val doubleBackToExitInterval: Long = 2000 // 2秒
     private var d: MutableList<File>? = null
     private lateinit var viewModel: PickFilesViewModel
-    private var showDownloadIcon = false
     private  var listFileAdapter: ListFileAdapter? = null
     private var nameFileAdapter: ListNameAdapter? = null
     private var mDimAmount = 0.5f
@@ -60,6 +64,8 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
     protected var paddingTop: Int = 0
     protected var paddingRight: Int = 0
     protected var paddingBottom: Int = 0
+
+    private var popupWindow: PopupWindow? = null
 
     init {
         mOutCancel = outCancel
@@ -103,7 +109,8 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
 
         // 监听返回键操作
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner){
-            if (showDownloadIcon){
+            if (viewModel.showMultiSelectIcon.value == true) {
+                viewModel.showMultiSelectIcon.value = false
                 return@addCallback
             }
             if (System.currentTimeMillis() - backPressedTime < doubleBackToExitInterval) {
@@ -122,6 +129,33 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
             }
         }
 
+
+        mBinding!!.layoutTitleFileDialog.ivSelect.setOnClickListener {
+            // show select-all
+            viewModel.showMultiSelectIcon.value = true
+        }
+
+        mBinding!!.layoutTitleFileDialog.tvSelectAll.setOnClickListener {
+            //select-all
+            viewModel.showSelectAll.value = true
+        }
+
+        mBinding!!.layoutTitleFileDialog.tvCancel.setOnClickListener {
+            //select cancel
+            viewModel.showMultiSelectIcon.value = false
+        }
+
+        mBinding!!.layoutTitleFileDialog.llSort.setOnClickListener {
+            // show sort
+            showSortPopupWindow(it)
+            mBinding!!.layoutTitleFileDialog.ivSort.run {
+                // 创建旋转动画，参数是旋转角度
+                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation + 180f)
+                rotationAnimator.duration = 300
+                rotationAnimator.start()
+            }
+        }
+
         val rvName = mBinding!!.layoutTitleBrowser.rvName
         // 设置 RecyclerView 的适配器
         rvName.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
@@ -133,17 +167,6 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
         rv.layoutManager = LinearLayoutManager(requireContext())
         listFileAdapter = ListFileAdapter(mutableListOf<File>(), mutableListOf())
         rv.adapter = listFileAdapter
-
-        mBinding!!.btnSelect.setOnClickListener {
-            if (!showDownloadIcon) {
-                showDownloadIcon = true
-                listFileAdapter?.checkList?.clear()
-                listFileAdapter?.checkList?.addAll(MutableList(listFileAdapter?.items?.size?:0){false})
-            } else {
-                showDownloadIcon = false
-            }
-            listFileAdapter?.notifyDataSetChanged()
-        }
 
         mBinding!!.btnCancel.setOnClickListener {
             dismissAllowingStateLoss()
@@ -159,7 +182,11 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
                 }
             }
             // 返回后上传
-            EventBus.getDefault().post(ClientMessageEvent.UploadFileList("", files, viewModel.getCurrentFilePath()))
+            if (files.size > 0) {
+                EventBus.getDefault().post(ClientMessageEvent.UploadFileList("", files, viewModel.getCurrentFilePath()))
+            } else {
+
+            }
             dismissAllowingStateLoss()
         }
 
@@ -192,11 +219,111 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
         viewModel.listFileLoading.observe(viewLifecycleOwner){
             // todo
             if (it==1) {
+
             } else {
+
+            }
+        }
+
+        viewModel.showMultiSelectIcon.observe(viewLifecycleOwner) {
+            if (it) {
+                mBinding!!.layoutTitleFileDialog.llRegular.visibility = View.GONE
+                mBinding!!.layoutTitleFileDialog.llSelect.visibility = View.VISIBLE
+
+                listFileAdapter!!.checkList.clear()
+                listFileAdapter!!.checkList.addAll(MutableList(listFileAdapter!!.items.size) { false })
+            } else {
+                mBinding!!.layoutTitleFileDialog.llRegular.visibility = View.VISIBLE
+                mBinding!!.layoutTitleFileDialog.llSelect.visibility = View.GONE
+            }
+            listFileAdapter?.notifyDataSetChanged()
+        }
+
+
+        viewModel.showSelectAll.observe(viewLifecycleOwner) {
+            listFileAdapter!!.checkList.clear()
+            if (it) {
+                listFileAdapter!!.checkList.addAll(MutableList(listFileAdapter!!.items.size) { true })
+            } else {
+                listFileAdapter!!.checkList.addAll(MutableList(listFileAdapter!!.items.size) { false })
+
+            }
+            listFileAdapter?.notifyDataSetChanged()
+        }
+
+        viewModel.changeSelectType.observe(viewLifecycleOwner) {
+            if (it < viewModel.sortTypes.size){
+                mBinding!!.layoutTitleFileDialog.tvSort.text = viewModel.sortTypes[it]
+                MySPUtil.getInstance().clientSortType = it
+                //show
+                d = viewModel.listFileData ?: mutableListOf()
+                listFileAdapter!!.items.clear()
+                sortFiles()
+                listFileAdapter!!.items.addAll(d!!)
+                listFileAdapter!!.checkList.addAll(MutableList(d!!.size) { false })
+                //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
+                listFileAdapter!!.notifyDataSetChanged()
             }
         }
     }
 
+    private fun sortFiles() {
+        //排序
+        //        "按名称",
+        //        "按类型",
+        //        "按大小升序",
+        //        "按大小降序",
+        //        "按时间升序",
+        //        "按时间降序",
+        when (viewModel.changeSelectType.value) {
+            0 -> {
+                d?.sortBy { data ->
+                    data.name
+                }
+            }
+
+            1 -> {
+                d?.sortBy { data ->
+                    val extension = data.name.substringAfterLast('.', "")
+                    if (TextUtils.isEmpty(extension)) {
+                        data.name
+                    } else {
+                        extension
+                    }
+                }
+            }
+
+            2 -> {
+                d?.sortBy { data ->
+                    data.length()
+                }
+            }
+
+            3 -> {
+                d?.sortByDescending { data ->
+                    data.length()
+                }
+            }
+
+            4 -> {
+                d?.sortBy { data ->
+                    data.lastModified()
+                }
+            }
+
+            5 -> {
+                d?.sortByDescending { data ->
+                    data.lastModified()
+                }
+            }
+
+            else -> {
+                d?.sortBy { data ->
+                    data.name
+                }
+            }
+        }
+    }
 
     private fun initParams() {
         if (dialog == null) {
@@ -313,7 +440,7 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
                 binding.executePendingBindings()
                 binding.tvName.text = item
                 binding.cl.setOnClickListener {
-                    if (showDownloadIcon){
+                    if (viewModel.showMultiSelectIcon.value == true){
                         return@setOnClickListener
                     }
                     if (items.size - 1 > adapterPosition && adapterPosition > 0){
@@ -331,9 +458,9 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
 
                 if (items.last() == item) {
                     // 最后一项
-                    binding.tvName.setTextColor(Color.BLUE)
-                }else{
-                    binding.tvName.setTextColor(Color.RED)
+                    binding.tvName.setTextColor(GetProvider.get().context.getColor(R.color.color_1296db))
+                } else {
+                    binding.tvName.setTextColor(GetProvider.get().context.getColor(R.color.color_7F000000))
                 }
             }
         }
@@ -360,11 +487,11 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
                 // 强制立即更新绑定数据到视图
                 binding.executePendingBindings()
 
+                binding.tvName.text = item.name
                 binding.tvTime.text = formatTimeWithSimpleDateFormat(item.lastModified())
                 if (item.isDirectory) {
-                    binding.tvName.text = item.name
                     binding.ivIcon.setImageResource(R.drawable.svg_dir_icon)
-                    if (showDownloadIcon){
+                    if (viewModel.showMultiSelectIcon.value == true){
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
                             checkList[adapterPosition] = !checkList[adapterPosition]
@@ -379,10 +506,18 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
                         binding.cl.setOnClickListener {
                             viewModel.listFile(item.absolutePath.removePrefix(Environment.getExternalStorageDirectory().absolutePath))
                         }
+                        binding.cl.setOnLongClickListener {
+                            viewModel.showMultiSelectIcon.value = true
+                            true
+                        }
                     }
                 } else {
-                    binding.ivIcon.setImageResource(R.drawable.svg_file_unknown_icon)
-                    if (showDownloadIcon){
+                    if (item.isFile) {
+                        // 加上文件大小
+                        binding.tvTime.text = binding.tvTime.text.toString() + "   ${item.length().toReadableFileSize()}"
+                    }
+                    binding.ivIcon.setImageDrawable(getIcon4File(GetProvider.get().context, item.name))
+                    if (viewModel.showMultiSelectIcon.value == true){
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
                             checkList[adapterPosition] = !checkList[adapterPosition]
@@ -396,6 +531,10 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
                         binding.ivSelect.visibility = View.GONE
                         binding.cl.setOnClickListener {
                             // other
+                        }
+                        binding.cl.setOnLongClickListener {
+                            viewModel.showMultiSelectIcon.value = true
+                            true
                         }
                     }
 
@@ -411,6 +550,83 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val binding = ItemListFileBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            return ViewHolder(binding)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.bind(items[position])
+        }
+
+        override fun getItemCount(): Int = items.size
+    }
+    private fun showSortPopupWindow(anchorView: View) {
+        // Inflate the popup_layout.xml
+        val inflater = LayoutInflater.from(requireContext())
+        val popupView = PopupWindowSortFileBinding.inflate(inflater, null, false)
+
+        // Initialize the PopupWindow
+        popupWindow = PopupWindow(
+            popupView.root,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true // Focusable
+        )
+
+        // Set PopupWindow background (required for dismissing on outside touch)
+        popupWindow?.setBackgroundDrawable(resources.getDrawable(R.drawable.bg_popup_window))
+        popupWindow?.isOutsideTouchable = true
+
+
+        val recyclerView = popupView.rv
+        // 设置 RecyclerView 的适配器
+        recyclerView.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
+
+        val adapter = SortFileAdapter(viewModel.sortTypes)
+        recyclerView.adapter = adapter
+
+        popupWindow?.setOnDismissListener {
+            mBinding?.layoutTitleFileDialog?.ivSort?.run {
+                // 创建旋转动画，参数是旋转角度
+                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation - 180f)
+                rotationAnimator.duration = 300
+                rotationAnimator.start()
+            }
+        }
+        // Show the PopupWindow
+        popupWindow?.showAsDropDown(anchorView, 0, 10) // Adjust position relative to the anchor view
+
+        // Alternatively, use showAtLocation for custom positioning
+        // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
+    }
+    inner class SortFileAdapter(val items: MutableList<String>) :
+        RecyclerView.Adapter<SortFileAdapter.ViewHolder>() {
+        inner class ViewHolder(private val binding: ItemSortNameBinding) :
+            RecyclerView.ViewHolder(binding.root) {
+
+            fun bind(item: String) {
+                binding.executePendingBindings()
+                binding.tvName.text = item
+                binding.ll.setOnClickListener {
+                    viewModel.changeSelectType.value = adapterPosition
+                    binding.tvName.setTextColor(Color.BLUE)
+                    binding.ll.post {
+                        notifyDataSetChanged()
+                    }
+                    binding.ll.postDelayed({popupWindow?.dismiss()},100)
+                }
+                if (viewModel.changeSelectType.value == adapterPosition) {
+                    binding.tvName.setTextColor(Color.BLUE)
+                }else{
+                    binding.tvName.setTextColor(Color.BLACK)
+                }
+
+            }
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val binding =
+                ItemSortNameBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             return ViewHolder(binding)
         }
 
