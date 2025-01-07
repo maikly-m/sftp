@@ -113,7 +113,7 @@ class SftpClientModel {
     private fun checkConnect(block: () -> Unit) {
         if (initLockInt.get() != 0) {
             Timber.d("init ...")
-            // block()
+            block()
             return
         }
         if (channelSftp == null) {

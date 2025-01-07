@@ -25,7 +25,6 @@ import com.airbnb.lottie.LottieDrawable
 import com.example.ftp.R
 import com.example.ftp.databinding.DialogLoadingBinding
 import com.example.ftp.utils.getScreenSizeWidth
-import com.example.ftp.utils.setStatusBarAndNavBar
 
 class LoadingDialog(outCancel: Boolean) : DialogFragment() {
     private var mDimAmount = 0f
@@ -54,6 +53,8 @@ class LoadingDialog(outCancel: Boolean) : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 设置 DialogFragment 使用的自定义主题
+        setStyle(STYLE_NORMAL, R.style.DialogTheme)
     }
 
     override fun onCreateView(
@@ -77,7 +78,10 @@ class LoadingDialog(outCancel: Boolean) : DialogFragment() {
 
     override fun onResume() {
         super.onResume()
-        // setStatusBarAndNavBar(requireActivity().window, Color.WHITE, true)
+        // 设置沉浸式状态栏，确保状态栏颜色为黑色
+//        dialog?.window?.let {
+//            setStatusBarAndNavBar(it, Color.WHITE, true)
+//        }
     }
 
     fun start() {

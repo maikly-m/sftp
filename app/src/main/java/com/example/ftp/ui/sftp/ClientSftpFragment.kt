@@ -12,11 +12,9 @@ import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import androidx.activity.addCallback
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -194,11 +192,25 @@ class ClientSftpFragment : Fragment() {
         }
 
         viewModel.listFileLoading.observe(viewLifecycleOwner) {
+            // 添加view stub 拦截加载时的点击操作
             if (it == 1) {
-                loadingDialog = LoadingDialog.newInstance(false)
-                loadingDialog!!.show(this)
+                binding.clLoading.visibility = View.VISIBLE
+//                binding.clLoading.animate()
+//                    .alpha(1f)  // 目标透明度为1（完全不透明）
+//                    .setDuration(100)  // 动画持续时间
+//                    .start()
+//                loadingDialog = LoadingDialog.newInstance(false)
+//                loadingDialog!!.show(this)
             } else {
-                loadingDialog?.dismissAllowingStateLoss()
+                binding.clLoading.visibility = View.GONE
+//                loadingDialog?.dismissAllowingStateLoss()
+//                binding.clLoading.animate()
+//                    .alpha(0f)  // 目标透明度为0（完全透明）
+//                    .setDuration(800)  // 动画持续时间
+//                    .withEndAction {
+//                        binding.clLoading.visibility = View.GONE  // 动画结束后隐藏视图
+//                    }
+//                    .start()
             }
         }
 
@@ -580,32 +592,6 @@ class ClientSftpFragment : Fragment() {
         // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
     }
 
-    fun showInputDialog(
-        context: Context,
-        title: String,
-        onConfirm: (input: String) -> Unit,
-        onCancel: () -> Unit
-    ) {
-        val editText = EditText(context).apply {
-            hint = "请输入名字" // 设置提示文字
-        }
-
-        val dialog = AlertDialog.Builder(context)
-            .setTitle(title) // 设置标题
-            .setView(editText) // 添加输入框
-            .setPositiveButton("确定") { _, _ ->
-                val inputText = editText.text.toString()
-                onConfirm(inputText) // 确定按钮回调
-            }
-            .setNegativeButton("取消") { _, _ ->
-                onCancel() // 取消按钮回调
-            }
-            .setCancelable(false)
-            .create()
-
-        dialog.show()
-    }
-
     override fun onStart() {
         super.onStart()
         // todo 启动
@@ -654,6 +640,7 @@ class ClientSftpFragment : Fragment() {
         // 处理事件
         when (event) {
             is ClientMessageEvent.SftpConnected -> {
+                Timber.d("SftpConnected ..")
                 // list root dir
                 viewModel.listFile(sftpClientService, "/")
             }
@@ -848,4 +835,6 @@ class ClientSftpFragment : Fragment() {
 
         override fun getItemCount(): Int = items.size
     }
+
+
 }

@@ -35,7 +35,7 @@ import static com.example.ftp.utils.UtilsKt.getScreenSizeWidth;
 
 
 public class ProgressDialog extends DialogFragment {
-    private float mDimAmount = 0;
+    private float mDimAmount = 0.2f;
     private int mAnimStyle = 0;
     private boolean mOutCancel = true;
     private int mWidth;
