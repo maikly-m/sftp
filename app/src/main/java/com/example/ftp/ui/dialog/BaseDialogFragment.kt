@@ -1,13 +1,7 @@
-/*
- * Copyright 2017-2023 Guilin Zhishen.
- * All Rights Reserved.
- */
-package com.example.ftp.ui.dialog2
+package com.example.ftp.ui.dialog
 
-import android.content.Context
 import android.content.DialogInterface
 import android.content.res.Configuration
-import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
@@ -17,77 +11,48 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.databinding.DataBindingUtil
+import androidx.databinding.ViewDataBinding
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
-import com.airbnb.lottie.LottieDrawable
 import com.example.ftp.R
-import com.example.ftp.databinding.DialogLoadingBinding
 import com.example.ftp.utils.getScreenSizeWidth
 
-class LoadingDialog(outCancel: Boolean) : DialogFragment() {
+abstract class BaseDialogFragment<T : ViewDataBinding> : DialogFragment() {
     private var mDimAmount = 0f
     private var mAnimStyle = 0
     private var mOutCancel = true
     private var mWidth = 0
-    private var mWidthPercent = 0.25f
-    private var mGravity = Gravity.CENTER
+    private var mWidthPercent = 0.8f
+    protected var mGravity = Gravity.CENTER
     private var mHeight = 0
     private var mColorDrawable: ColorDrawable? = null
     private var onDismissListener: OnDismissListener? = null
-    protected var mBinding: DialogLoadingBinding? = null
+    protected lateinit var mBinding: T
     private var mForceFullScreen = false //强制全屏显示
     protected var paddingLeft: Int = 0
     protected var paddingTop: Int = 0
     protected var paddingRight: Int = 0
     protected var paddingBottom: Int = 0
 
-    init {
-        mOutCancel = outCancel
-    }
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        // 设置 DialogFragment 使用的自定义主题
-        setStyle(STYLE_NORMAL, R.style.DialogTheme)
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        mBinding = DataBindingUtil.inflate(inflater, R.layout.dialog_loading, container, false)
+        mBinding = DataBindingUtil.inflate(inflater, getLayoutId(), container, false)
 
-        return mBinding!!.getRoot()
+        return mBinding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        mBinding!!.lifecycleOwner = viewLifecycleOwner
+        mBinding.lifecycleOwner = viewLifecycleOwner
+        initView()
     }
 
     override fun onStart() {
         super.onStart()
         initParams()
-        start()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // 设置沉浸式状态栏，确保状态栏颜色为黑色
-//        dialog?.window?.let {
-//            setStatusBarAndNavBar(it, Color.WHITE, true)
-//        }
-    }
-
-    fun start() {
-        val animationView = mBinding!!.lottieAnimationView
-        animationView.playAnimation()
-        animationView.repeatCount = LottieDrawable.INFINITE // 无限循环
     }
 
     protected fun initParams() {
@@ -147,15 +112,15 @@ class LoadingDialog(outCancel: Boolean) : DialogFragment() {
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
-        if (onDismissListener != null) {
-            onDismissListener!!.onDismiss()
-        }
+        onDismissListener?.onDismiss()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         initParams()
     }
+    abstract fun getLayoutId(): Int
+    abstract fun initView()
 
     protected fun setWidth(mWidth: Int) {
         this.mWidth = mWidth
@@ -211,11 +176,5 @@ class LoadingDialog(outCancel: Boolean) : DialogFragment() {
 
     interface OnDismissListener {
         fun onDismiss()
-    }
-
-    companion object {
-        fun newInstance(outCancel: Boolean): LoadingDialog {
-            return LoadingDialog(outCancel)
-        }
     }
 }

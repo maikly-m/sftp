@@ -23,12 +23,12 @@
         android:id="@+id/navigation_client_settings"
         android:name="com.example.ftp.ui.home.ClientSettingsFragment"
         tools:layout="@layout/fragment_client_settings" >
-        <action android:id="@+id/action_client_settings2client_sftp"
-            app:destination="@+id/navigation_client_sftp"/>
         <action android:id="@+id/action_client_settings2scan_code"
             app:destination="@+id/navigation_scan_code"/>
         <action android:id="@+id/action_client_settings2client_settings_more"
             app:destination="@+id/navigation_client_settings_more"/>
+        <action android:id="@+id/action_client_settings2client_browser"
+            app:destination="@+id/navigation_client_browser"/>
     </fragment>
     <fragment
         android:id="@+id/navigation_client_settings_more"
@@ -41,6 +41,19 @@
         <action android:id="@+id/action_server_settings2server_sftp"
             app:destination="@+id/navigation_server_sftp"/>
     </fragment>
+    <fragment
+        android:id="@+id/navigation_client_browser"
+        android:name="com.example.ftp.ui.sftp.ClientBrowserFragment"
+        tools:layout="@layout/fragment_client_browser" >
+        <action android:id="@+id/action_client_browser2client_sftp"
+            app:destination="@+id/navigation_client_sftp"/>
+        <action android:id="@+id/action_client_browser2local_file"
+            app:destination="@+id/navigation_local_file"/>
+    </fragment>
+    <fragment
+        android:id="@+id/navigation_local_file"
+        android:name="com.example.ftp.ui.local.LocalFileFragment"
+        tools:layout="@layout/fragment_local_file" />
     <fragment
         android:id="@+id/navigation_server_sftp"
         android:name="com.example.ftp.ui.sftp.ServerSftpFragment"

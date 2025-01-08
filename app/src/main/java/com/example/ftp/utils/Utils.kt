@@ -25,6 +25,7 @@ import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import android.text.TextUtils
 import android.util.Size
 import android.view.LayoutInflater
 import android.view.View
@@ -36,10 +37,12 @@ import androidx.fragment.app.FragmentActivity
 import com.example.ftp.R
 import com.example.ftp.databinding.DialogCustomInputBinding
 import com.example.ftp.provider.GetProvider
+import com.example.ftp.room.bean.FileTrack
 import com.example.ftp.utils.thread.AppExecutors
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
+import com.jcraft.jsch.ChannelSftp
 import com.permissionx.guolindev.PermissionX
 import id.zelory.compressor.Compressor
 import id.zelory.compressor.constraint.format
@@ -55,6 +58,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Vector
 
 /**
  * 全屏显示，状态栏及导航栏均隐藏,均不占位
@@ -546,6 +550,11 @@ fun generateQRCode(content: String): Bitmap? {
     }
 }
 
+fun formatTimeWithDay(timestamp: Long): String {
+    val format = SimpleDateFormat("yyyy-MM-dd") // 定义格式
+    val date = Date(timestamp) // 将 Long 转为 Date
+    return format.format(date) // 格式化为字符串
+}
 
 fun formatTimeWithSimpleDateFormat(timestamp: Long): String {
     val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss") // 定义格式
@@ -670,16 +679,30 @@ fun replaceCursorStyle(context: Context, et: EditText) {
         et.textCursorDrawable = cursorDrawable
     } else {
         // For Android 9 and below
-        val editorField = EditText::class.java.getDeclaredField("mEditor")
-        editorField.isAccessible = true
-        val editor = editorField.get(et)
+        try {
+            val editorField = EditText::class.java.getDeclaredField("mEditor")
+            editorField.isAccessible = true
+            val editor = editorField.get(et)
 
-        val cursorDrawable = context.resources.getDrawable(R.drawable.custom_cursor)
-        val cursorField = editor.javaClass.getDeclaredField("mCursorDrawable")
-        cursorField.isAccessible = true
-        cursorField.set(editor, arrayOf(cursorDrawable, cursorDrawable))
+            val cursorDrawable = context.resources.getDrawable(R.drawable.custom_cursor)
+            val cursorField = editor.javaClass.getDeclaredField("mCursorDrawable")
+            cursorField.isAccessible = true
+            cursorField.set(editor, arrayOf(cursorDrawable, cursorDrawable))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
+
+val textSuffixType = listOf("text", "txt", "rtf", "md")
+val zipSuffixType = listOf("zip", "rar", "tar", ".gz", "7z")
+val docSuffixType = listOf("doc", "docx")
+val pptSuffixType = listOf("ppt")
+val pdfSuffixType = listOf("pdf")
+val musicSuffixType = listOf("mp3","m4a","flac","wav","aac")
+val videoSuffixType = listOf("mp4","mkv","avi","mov","flv", "rm", "rmvb", "wmv")
+val imageSuffixType = listOf("png","jpeg","jpg","gif","bmp")
+val apkSuffixType = listOf("apk")
 
 fun getIcon4File(context: Context, filename: String): Drawable {
     val extend = filename.substringAfterLast('.', "").lowercase()
@@ -687,31 +710,31 @@ fun getIcon4File(context: Context, filename: String): Drawable {
          ""-> {
              context.resources.getDrawable(R.drawable.svg_file_unknown_icon)
          }
-         "text", "txt"-> {
+         in textSuffixType-> {
              context.resources.getDrawable(R.drawable.svg_text_icon)
          }
-         "zip", "rar"-> {
+         in zipSuffixType-> {
              context.resources.getDrawable(R.drawable.svg_zip_icon)
          }
-         "word"-> {
+         in docSuffixType-> {
              context.resources.getDrawable(R.drawable.svg_word_icon)
          }
-        "ppt"-> {
+        in pptSuffixType-> {
             context.resources.getDrawable(R.drawable.svg_ppt_icon)
         }
-        "pdf"-> {
+        in pdfSuffixType-> {
             context.resources.getDrawable(R.drawable.svg_pdf_icon)
         }
-        "mp3","m4a","flac","wav","aac"-> {
+        in musicSuffixType-> {
             context.resources.getDrawable(R.drawable.svg_music_icon)
         }
-        "mp4","mkv","avi","mov","flv"-> {
+        in videoSuffixType-> {
             context.resources.getDrawable(R.drawable.svg_media_icon)
         }
-        "png","jpeg","jpg","gif","bmp"-> {
+        in imageSuffixType-> {
             context.resources.getDrawable(R.drawable.svg_image_icon)
         }
-        "apk"-> {
+        in apkSuffixType-> {
             context.resources.getDrawable(R.drawable.svg_apk_icon)
         }
         else -> {
@@ -722,5 +745,121 @@ fun getIcon4File(context: Context, filename: String): Drawable {
     val padding = DisplayUtils.dp2px(context, 3f)
     val insetDrawable = InsetDrawable(i, padding, padding, padding, padding)
     return insetDrawable
+}
+
+fun sortFiles(d: Vector<ChannelSftp.LsEntry>, value: Int?) {
+    //排序
+    //        "按名称",
+    //        "按类型",
+    //        "按大小升序",
+    //        "按大小降序",
+    //        "按时间升序",
+    //        "按时间降序",
+    when (value) {
+        0 -> {
+            d.sortBy { data ->
+                data.filename
+            }
+        }
+
+        1 -> {
+            d.sortBy { data ->
+                val extension = data.filename.substringAfterLast('.', "")
+                if (TextUtils.isEmpty(extension)) {
+                    data.filename
+                } else {
+                    extension
+                }
+            }
+        }
+
+        2 -> {
+            d.sortBy { data ->
+                data.attrs.size
+            }
+        }
+
+        3 -> {
+            d.sortByDescending { data ->
+                data.attrs.size
+            }
+        }
+
+        4 -> {
+            d.sortBy { data ->
+                data.attrs.mTime
+            }
+        }
+
+        5 -> {
+            d.sortByDescending { data ->
+                data.attrs.mTime
+            }
+        }
+
+        else -> {
+            d.sortBy { data ->
+                data.filename
+            }
+        }
+    }
+}
+
+fun sortFiles(d: MutableList<FileTrack>, value: Int?) {
+    //排序
+    //        "按名称",
+    //        "按类型",
+    //        "按大小升序",
+    //        "按大小降序",
+    //        "按时间升序",
+    //        "按时间降序",
+    when (value) {
+        0 -> {
+            d.sortBy { data ->
+                data.name
+            }
+        }
+
+        1 -> {
+            d.sortBy { data ->
+                val extension = data.name.substringAfterLast('.', "")
+                if (TextUtils.isEmpty(extension)) {
+                    data.name
+                } else {
+                    extension
+                }
+            }
+        }
+
+        2 -> {
+            d.sortBy { data ->
+                data.size
+            }
+        }
+
+        3 -> {
+            d.sortByDescending { data ->
+                data.size
+            }
+        }
+
+        4 -> {
+            d.sortBy { data ->
+                data.mTime
+            }
+        }
+
+        5 -> {
+            d.sortByDescending { data ->
+                data.mTime
+            }
+        }
+
+        else -> {
+            d.sortBy { data ->
+                data.name
+            }
+        }
+    }
 }
 

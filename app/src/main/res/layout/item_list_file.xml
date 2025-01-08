@@ -29,34 +29,35 @@
             app:layout_constraintStart_toEndOf="@+id/iv_select"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
+        <LinearLayout
             app:layout_constrainedWidth="true"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toEndOf="@+id/iv_icon"
-            app:layout_constraintBottom_toTopOf="@+id/tv_time"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:id="@+id/tv_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            tools:text="未知文件66666666666未知文件666666666未知文件66666666未知文件55555555未知文件"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:textColor="@color/color_434242"
-            android:textSize="13sp" />
-        <TextView
-            app:layout_constrainedWidth="true"
-            app:layout_constraintTop_toBottomOf="@+id/tv_name"
-            app:layout_constraintStart_toStartOf="@+id/tv_name"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            android:id="@+id/tv_time"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:ellipsize="end"
-            tools:text="2020-01-01 20:20"
-            android:textColor="@color/black_888888"
-            android:textSize="11sp" />
+            android:layout_height="wrap_content">
+            <TextView
+                android:id="@+id/tv_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:text="未知文件66666666666未知文件666666666未知文件66666666未知文件55555555未知文件"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:textColor="@color/color_434242"
+                android:textSize="13sp" />
+            <TextView
+                android:id="@+id/tv_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="2020-01-01 20:20"
+                android:textColor="@color/black_888888"
+                android:textSize="11sp" />
+        </LinearLayout>
+
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

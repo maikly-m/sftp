@@ -205,7 +205,7 @@ class ClientSettingsFragment : Fragment() {
                             showToast("密码不能为空")
                         } else {
                             MySPUtil.getInstance().clientConnectInfo = info
-                            findNavController().navigate(R.id.action_client_settings2client_sftp)
+                            findNavController().navigate(R.id.action_client_settings2client_browser)
                         }
                     }
                 }

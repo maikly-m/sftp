@@ -3,6 +3,7 @@ import com.android.build.api.dsl.Packaging
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    kotlin("kapt")
 }
 
 android {
@@ -72,13 +73,13 @@ dependencies {
     implementation(libs.jakewharton.timber)
 //    implementation(libs.tencent.mm.opensdk)
     implementation(libs.auto.value.gson) // AutoValue Gson 扩展库
-    annotationProcessor(libs.auto.value)  // AutoValue 注解处理器
-    annotationProcessor(libs.auto.value.gson)   // Gson 扩展的注解处理器
+    kapt(libs.auto.value)  // AutoValue 注解处理器
+    kapt(libs.auto.value.gson)   // Gson 扩展的注解处理器
     implementation(libs.zxing.core)  // ZXing 核心库
     implementation(libs.zxing.android.embedded)  // ZXing Android 嵌入式库
     implementation(libs.jsoup)
     implementation(libs.glide)  // Glide 的核心库
-    annotationProcessor(libs.compiler)  // Glide 的注解处理器，用于生成 Glide API
+    kapt(libs.compiler)  // Glide 的注解处理器，用于生成 Glide API
 //    implementation(libs.androidx.media3.exoplayer)
 //    implementation(libs.androidx.media3.ui)
     implementation(libs.compressor)
@@ -91,6 +92,11 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.lottie)
+    implementation(libs.androidx.viewpager2)
+
+    implementation(libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
 
     // ftp
 //    implementation(libs.ftpserver.core)

@@ -15,8 +15,10 @@ glide = "4.15.1"
 jsoup = "1.15.3"
 media3Exoplayer = "1.5.0"
 minaCore = "2.1.6"
+roomRuntime = "2.6.1"
 slf4jApi = "2.0.9"
 sshdSftp = "2.7.0"
+viewpager2 = "1.1.0"
 zxingCore = "3.4.1"
 kotlin = "1.9.0"
 coreKtx = "1.15.0"
@@ -49,6 +51,10 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3Exoplayer" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Exoplayer" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomRuntime" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
+androidx-viewpager2 = { module = "androidx.viewpager2:viewpager2", version.ref = "viewpager2" }
 auto-value = { module = "com.google.auto.value:auto-value", version.ref = "autoValue" }
 auto-value-gson = { module = "com.ryanharter.auto.value:auto-value-gson", version.ref = "autoValueGson" }
 androidpicker-common = { module = "com.github.gzu-liyujiang.AndroidPicker:Common", version.ref = "androidPickerCommon" }

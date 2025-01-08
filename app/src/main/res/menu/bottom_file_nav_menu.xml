@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_local_last"
+        android:icon="@drawable/svg_local_last_icon"
+        android:title="最近" />
+
+    <item
+        android:id="@+id/navigation_local_file"
+        android:icon="@drawable/svg_local_file_icon"
+        android:title="文件" />
+
+
+</menu>

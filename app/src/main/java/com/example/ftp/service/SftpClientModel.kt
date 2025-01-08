@@ -3,6 +3,7 @@ package com.example.ftp.service
 import android.text.TextUtils
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.provider.GetProvider
+import com.example.ftp.utils.showToast
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.JSchException
@@ -89,11 +90,12 @@ class SftpClientModel {
             channelSftp = null
             session = null
             if (e is JSchException) {
-                e.cause?.message?.contains("java.net.SocketTimeoutException").let {
+                if (e.cause?.message?.contains("java.net.SocketTimeoutException") == true){
                     EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail("连接异常"))
-                }
-                e.cause?.message?.contains("java.net.NoRouteToHostException").let {
+                }else if (e.cause?.message?.contains("java.net.NoRouteToHostException") == true) {
                     EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail("连接的IP异常"))
+                }else{
+                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail("连接失败"))
                 }
             }
         } finally {

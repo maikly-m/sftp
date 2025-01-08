@@ -31,9 +31,9 @@ import com.example.ftp.databinding.PopupWindowSortFileBinding
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.service.SftpClientService
-import com.example.ftp.ui.dialog2.LoadingDialog
-import com.example.ftp.ui.dialog2.PickFilesDialog
-import com.example.ftp.ui.dialog2.ProgressDialog
+import com.example.ftp.ui.dialog.LoadingDialog
+import com.example.ftp.ui.dialog.PickFilesDialog
+import com.example.ftp.ui.dialog.ProgressDialog
 import com.example.ftp.ui.format
 import com.example.ftp.ui.toReadableFileSize
 import com.example.ftp.utils.DisplayUtils
@@ -44,6 +44,7 @@ import com.example.ftp.utils.isFileNameValid
 import com.example.ftp.utils.isFolderNameValid
 import com.example.ftp.utils.showCustomInputDialog
 import com.example.ftp.utils.showToast
+import com.example.ftp.utils.sortFiles
 import com.jcraft.jsch.ChannelSftp
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -165,7 +166,7 @@ class ClientSftpFragment : Fragment() {
                 //show
                 d = viewModel.listFileData ?: Vector<ChannelSftp.LsEntry>()
                 listFileAdapter.items.clear()
-                sortFiles()
+                sortFiles(d, viewModel.changeSelectType.value)
                 listFileAdapter.items.addAll(d)
                 listFileAdapter.checkList.addAll(MutableList(d.size) { false })
                 //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
@@ -338,69 +339,11 @@ class ClientSftpFragment : Fragment() {
                 //show
                 d = viewModel.listFileData ?: Vector<ChannelSftp.LsEntry>()
                 listFileAdapter.items.clear()
-                sortFiles()
+                sortFiles(d, viewModel.changeSelectType.value)
                 listFileAdapter.items.addAll(d)
                 listFileAdapter.checkList.addAll(MutableList(d.size) { false })
                 //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
                 listFileAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
-    private fun sortFiles() {
-        //排序
-        //        "按名称",
-        //        "按类型",
-        //        "按大小升序",
-        //        "按大小降序",
-        //        "按时间升序",
-        //        "按时间降序",
-        when (viewModel.changeSelectType.value) {
-            0 -> {
-                d.sortBy { data ->
-                    data.filename
-                }
-            }
-
-            1 -> {
-                d.sortBy { data ->
-                    val extension = data.filename.substringAfterLast('.', "")
-                    if (TextUtils.isEmpty(extension)) {
-                        data.filename
-                    } else {
-                        extension
-                    }
-                }
-            }
-
-            2 -> {
-                d.sortBy { data ->
-                    data.attrs.size
-                }
-            }
-
-            3 -> {
-                d.sortByDescending { data ->
-                    data.attrs.size
-                }
-            }
-
-            4 -> {
-                d.sortBy { data ->
-                    data.attrs.mTime
-                }
-            }
-
-            5 -> {
-                d.sortByDescending { data ->
-                    data.attrs.mTime
-                }
-            }
-
-            else -> {
-                d.sortBy { data ->
-                    data.filename
-                }
             }
         }
     }

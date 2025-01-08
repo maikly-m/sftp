@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cv"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_margin="1dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="2dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        >
+        <LinearLayout
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:id="@+id/ll"
+            android:layout_width="70dp"
+            android:layout_height="70dp">
+
+            <ImageView
+                android:layout_marginTop="5dp"
+                android:layout_marginBottom="3dp"
+                android:layout_gravity="center"
+                android:id="@+id/iv_local_file"
+                android:layout_width="30dp"
+                android:layout_height="30dp"/>
+            <TextView
+                android:layout_gravity="center"
+                android:id="@+id/tv_local_file_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SFTP"
+                android:textColor="@color/color_737373"
+                android:textSize="12sp" />
+            <TextView
+                android:layout_gravity="center"
+                android:id="@+id/tv_local_file_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/color_737373"
+                android:textSize="10sp" />
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+
+    <data>
+    </data>
+
+</layout>

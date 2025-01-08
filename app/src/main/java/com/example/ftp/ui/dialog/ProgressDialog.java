@@ -2,7 +2,7 @@
  * Copyright 2017-2023 Guilin Zhishen.
  * All Rights Reserved.
  */
-package com.example.ftp.ui.dialog2;
+package com.example.ftp.ui.dialog;
 
 import android.content.Context;
 import android.content.DialogInterface;

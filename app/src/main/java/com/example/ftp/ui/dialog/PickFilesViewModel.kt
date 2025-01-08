@@ -1,4 +1,4 @@
-package com.example.ftp.ui.dialog2
+package com.example.ftp.ui.dialog
 
 import android.os.Environment
 import androidx.lifecycle.LiveData

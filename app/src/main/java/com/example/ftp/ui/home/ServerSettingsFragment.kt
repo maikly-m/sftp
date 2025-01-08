@@ -153,8 +153,8 @@ class ServerSettingsFragment : Fragment() {
                 binding.etPw.text.toString(),
             )
 
-            if (info.port < 0) {
-                showToast("端口要大于0")
+            if (info.port < 2000) {
+                showToast("端口要大于2000")
             } else {
                 if (TextUtils.isEmpty(info.name)) {
                     showToast("用户名不能为空")

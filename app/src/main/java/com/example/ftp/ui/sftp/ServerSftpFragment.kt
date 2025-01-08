@@ -5,7 +5,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,7 +15,7 @@ import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -30,9 +29,6 @@ import com.example.ftp.utils.getLocalIpAddress
 import com.example.ftp.utils.grantExternalStorage
 import com.example.ftp.utils.gson.GsonUtil
 import com.example.ftp.utils.showToast
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.WriterException
-import com.google.zxing.qrcode.QRCodeWriter
 import timber.log.Timber
 
 class ServerSftpFragment : Fragment() {
@@ -135,6 +131,17 @@ class ServerSftpFragment : Fragment() {
 
     }
 
+    override fun onResume() {
+        super.onResume()
+        // 屏幕常亮
+        requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // 关闭常亮
+        requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
 
     // 启动 FTP 服务器
     private fun startFtpServer() {
