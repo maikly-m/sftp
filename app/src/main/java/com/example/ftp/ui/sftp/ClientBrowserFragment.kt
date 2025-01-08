@@ -68,7 +68,10 @@ class ClientBrowserFragment : Fragment() {
         binding.cv.setOnClickListener {
             findNavController().navigate(R.id.action_client_browser2client_sftp)
         }
-        if (mainViewModel.listFile.value == 0){
+        if (mainViewModel.listFile.value == 1){
+            // 更新数据
+            mainViewModel.getAllFile()
+        }else{
             // 没有初始化过
             mainViewModel.listFile(Environment.getExternalStorageDirectory().absolutePath)
             mainViewModel.listFile.observe(viewLifecycleOwner){
@@ -78,9 +81,6 @@ class ClientBrowserFragment : Fragment() {
                 } else {
                 }
             }
-        }else{
-            // 更新数据
-            mainViewModel.getAllFile()
         }
 
         mainViewModel.getAllFile.observe(viewLifecycleOwner){
