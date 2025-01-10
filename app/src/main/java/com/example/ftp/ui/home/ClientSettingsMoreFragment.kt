@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.ftp.databinding.FragmentClientSettingsMoreBinding
+import com.example.ftp.ui.MainViewModel
 import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.isFolderNameValid
 import com.example.ftp.utils.isFullFolderNameValid
@@ -20,6 +21,7 @@ import timber.log.Timber
 
 class ClientSettingsMoreFragment : Fragment() {
 
+    private lateinit var mainViewModel: MainViewModel
     private var _binding: FragmentClientSettingsMoreBinding? = null
 
     // This property is only valid between onCreateView and
@@ -33,7 +35,7 @@ class ClientSettingsMoreFragment : Fragment() {
     ): View {
         val viewModel =
             ViewModelProvider(this).get(ClientSettingsMoreViewModel::class.java)
-
+        mainViewModel = ViewModelProvider(requireActivity()).get(MainViewModel::class.java)
         _binding = FragmentClientSettingsMoreBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
@@ -59,6 +61,8 @@ class ClientSettingsMoreFragment : Fragment() {
             if (isFullFolderNameValid(viewModel.etSavePath)){
                 if (viewModel.etSavePath == "/"){
                     MySPUtil.getInstance().downloadSavePath = viewModel.etSavePath
+                    // 修改监听位置
+                    mainViewModel.resetFileObserver()
                     showToast("已保存")
                     return@setOnClickListener
                 }
@@ -86,6 +90,8 @@ class ClientSettingsMoreFragment : Fragment() {
                     showToast("路径不合法，请修改")
                 }else{
                     MySPUtil.getInstance().downloadSavePath = viewModel.etSavePath
+                    // 修改监听位置
+                    mainViewModel.resetFileObserver()
                     showToast("已保存")
                 }
             }else{
