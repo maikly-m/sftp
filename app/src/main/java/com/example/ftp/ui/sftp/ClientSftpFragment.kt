@@ -1,6 +1,7 @@
 package com.example.ftp.ui.sftp
 
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -30,18 +31,21 @@ import com.example.ftp.databinding.PopupWindowBottomBinding
 import com.example.ftp.databinding.PopupWindowSortFileBinding
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.provider.GetProvider
+import com.example.ftp.service.ClientType
 import com.example.ftp.service.SftpClientService
 import com.example.ftp.ui.dialog.LoadingDialog
 import com.example.ftp.ui.dialog.PickFilesDialog
 import com.example.ftp.ui.dialog.ProgressDialog
 import com.example.ftp.ui.format
 import com.example.ftp.ui.toReadableFileSize
+import com.example.ftp.ui.toReadableFileSizeFormat1
 import com.example.ftp.utils.DisplayUtils
 import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.formatTimeWithSimpleDateFormat
 import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.isFileNameValid
 import com.example.ftp.utils.isFolderNameValid
+import com.example.ftp.utils.showCustomAlertDialog
 import com.example.ftp.utils.showCustomInputDialog
 import com.example.ftp.utils.showToast
 import com.example.ftp.utils.sortFiles
@@ -51,14 +55,13 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import timber.log.Timber
 import java.util.Vector
+import kotlin.math.roundToInt
 
 class ClientSftpFragment : Fragment() {
 
+    private var transferAnimator: ValueAnimator? = null
     private var popupWindow: PopupWindow? = null
     private var pickFilesDialog: PickFilesDialog? = null
-    private var loadingDialog: LoadingDialog? = null
-
-    private var progressDialog: ProgressDialog? = null
     private lateinit var nameFileAdapter: ListNameAdapter
     private lateinit var listFileAdapter: ListFileAdapter
     private lateinit var d: Vector<ChannelSftp.LsEntry>
@@ -88,6 +91,43 @@ class ClientSftpFragment : Fragment() {
 
         // back
         binding.layoutTitleFile.ivBack.setOnClickListener {
+            val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive?:false
+            val downloadActive = viewModel.getDownloadFileJob()?.isActive?:false
+            if (uploadActive && downloadActive){
+                // 拦截任务
+                showCustomAlertDialog(requireContext(), "提示", "正在上传和下载，是否退出", {
+                    // cancel
+                }){
+                    // ok
+                    // 关闭任务
+                    viewModel.uploadFileInputStreamJobCancel()
+                    viewModel.downloadFileJobCancel()
+                    findNavController().popBackStack()
+                }
+                return@setOnClickListener
+            }else if (uploadActive) {
+                // 拦截任务
+                showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
+                    // cancel
+                }){
+                    // ok
+                    // 关闭任务
+                    viewModel.uploadFileInputStreamJobCancel()
+                    findNavController().popBackStack()
+                }
+                return@setOnClickListener
+            }else if (downloadActive) {
+                // 拦截任务
+                showCustomAlertDialog(requireContext(), "提示", "正在下载，是否退出", {
+                    // cancel
+                }){
+                    // ok
+                    // 关闭任务
+                    viewModel.downloadFileJobCancel()
+                    findNavController().popBackStack()
+                }
+                return@setOnClickListener
+            }
             findNavController().popBackStack()
         }
 
@@ -145,6 +185,44 @@ class ClientSftpFragment : Fragment() {
                     "/"
                 )
             ) {
+
+                val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive?:false
+                val downloadActive = viewModel.getDownloadFileJob()?.isActive?:false
+                if (uploadActive && downloadActive){
+                    // 拦截任务
+                    showCustomAlertDialog(requireContext(), "提示", "正在上传和下载，是否退出", {
+                        // cancel
+                    }){
+                        // ok
+                        // 关闭任务
+                        viewModel.uploadFileInputStreamJobCancel()
+                        viewModel.downloadFileJobCancel()
+                        findNavController().popBackStack()
+                    }
+                    return@addCallback
+                }else if (uploadActive) {
+                    // 拦截任务
+                    showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
+                        // cancel
+                    }){
+                        // ok
+                        // 关闭任务
+                        viewModel.uploadFileInputStreamJobCancel()
+                        findNavController().popBackStack()
+                    }
+                    return@addCallback
+                }else if (downloadActive) {
+                    // 拦截任务
+                    showCustomAlertDialog(requireContext(), "提示", "正在下载，是否退出", {
+                        // cancel
+                    }){
+                        // ok
+                        // 关闭任务
+                        viewModel.downloadFileJobCancel()
+                        findNavController().popBackStack()
+                    }
+                    return@addCallback
+                }
                 findNavController().popBackStack()
             } else {
                 val path =
@@ -196,22 +274,8 @@ class ClientSftpFragment : Fragment() {
             // 添加view stub 拦截加载时的点击操作
             if (it == 1) {
                 binding.clLoading.visibility = View.VISIBLE
-//                binding.clLoading.animate()
-//                    .alpha(1f)  // 目标透明度为1（完全不透明）
-//                    .setDuration(100)  // 动画持续时间
-//                    .start()
-//                loadingDialog = LoadingDialog.newInstance(false)
-//                loadingDialog!!.show(this)
             } else {
                 binding.clLoading.visibility = View.GONE
-//                loadingDialog?.dismissAllowingStateLoss()
-//                binding.clLoading.animate()
-//                    .alpha(0f)  // 目标透明度为0（完全透明）
-//                    .setDuration(800)  // 动画持续时间
-//                    .withEndAction {
-//                        binding.clLoading.visibility = View.GONE  // 动画结束后隐藏视图
-//                    }
-//                    .start()
             }
         }
 
@@ -223,21 +287,39 @@ class ClientSftpFragment : Fragment() {
             } else {
                 showToast("上传失败")
             }
-            progressDialog?.dismissAllowingStateLoss()
+
+            binding.cvLlSimpleUp.visibility = View.GONE
+            binding.cvLlSimpleUpTv.text = "传输"
+            binding.tvTransferUpCount.text = "0/0"
+            binding.tvTransferUpSize.text = "0/0"
+            binding.tvTransferUpProgress.text = "0%"
+            binding.cvClUp.visibility = View.GONE
+            if (binding.cvClDown.visibility == View.GONE){
+                binding.cvLlSimpleTip.visibility = View.VISIBLE
+                binding.cvClTip.visibility = View.VISIBLE
+            }
         }
 
         viewModel.uploadFileProgress.observe(viewLifecycleOwner) {
-            if (it > 0f) {
+            if (it.progress >= 0f) {
                 //show
-                if (progressDialog != null && progressDialog!!.isVisible) {
-                    progressDialog!!.setProgress(it.format(0) + "%")
-                    return@observe
-                } else {
-                    progressDialog?.dismissAllowingStateLoss()
-                    progressDialog = ProgressDialog.newInstance(false)
-                    progressDialog!!.show(requireActivity())
-                }
-            } else {
+                binding.cvLlSimpleUpTv.text =  "${it.progress.format(0)}%"
+
+                binding.tvTransferUpCount.text = "${ it.currentCount}/${it.count}"
+                binding.tvTransferUpSize.text = "${it.currentFileSizes.toReadableFileSizeFormat1()}/${it.fileSizes.toReadableFileSizeFormat1()}"
+                binding.tvTransferUpProgress.text = binding.cvLlSimpleUpTv.text
+                binding.pbTransferUpProgress.progress = it.progress.roundToInt()
+
+            } else if (it.progress == -1f){
+                // start
+                binding.cvLlSimpleUpTv.text =  "0%"
+                binding.cvClUp.visibility = View.VISIBLE
+                binding.cvClTip.visibility = View.GONE
+                binding.pbTransferUpProgress.progress = it.progress.roundToInt()
+                binding.cvLlSimpleUp.visibility = View.VISIBLE
+                binding.cvLlSimpleTip.visibility = View.GONE
+            }else{
+
             }
         }
 
@@ -248,23 +330,42 @@ class ClientSftpFragment : Fragment() {
             } else {
                 showToast("下载失败")
             }
-            progressDialog?.dismissAllowingStateLoss()
+
+
+            binding.cvLlSimpleDown.visibility = View.GONE
+            binding.cvLlSimpleDownTv.text = "传输"
+            binding.tvTransferDownCount.text = "0/0"
+            binding.tvTransferDownSize.text = "0/0"
+            binding.tvTransferDownProgress.text = "0%"
+            binding.cvClDown.visibility = View.GONE
+            if (binding.cvClUp.visibility == View.GONE){
+                binding.cvLlSimpleTip.visibility = View.VISIBLE
+                binding.cvClTip.visibility = View.VISIBLE
+            }
 
             viewModel.showMultiSelectIcon.value = false
         }
 
         viewModel.downloadFileProgress.observe(viewLifecycleOwner) {
-            if (it > 0f) {
+            if (it.progress >= 0f) {
                 //show
-                if (progressDialog != null && progressDialog!!.isVisible) {
-                    progressDialog!!.setProgress(it.format(2) + "%")
-                    return@observe
-                } else {
-                    progressDialog?.dismissAllowingStateLoss()
-                    progressDialog = ProgressDialog.newInstance(false)
-                    progressDialog!!.show(requireActivity())
-                }
-            } else {
+                binding.cvLlSimpleDownTv.text =  "${it.progress.format(0)}%"
+
+                binding.tvTransferDownCount.text = "${ it.currentCount}/${it.count}"
+                binding.tvTransferDownSize.text = "${it.currentFileSizes.toReadableFileSizeFormat1()}/${it.fileSizes.toReadableFileSizeFormat1()}"
+                binding.tvTransferDownProgress.text = binding.cvLlSimpleDownTv.text
+                binding.pbTransferDownProgress.progress = it.progress.roundToInt()
+
+            } else if (it.progress == -1f){
+                // start
+                binding.cvLlSimpleDownTv.text =  "0%"
+                binding.cvClDown.visibility = View.VISIBLE
+                binding.cvClTip.visibility = View.GONE
+                binding.pbTransferDownProgress.progress = it.progress.roundToInt()
+                binding.cvLlSimpleDown.visibility = View.VISIBLE
+                binding.cvLlSimpleTip.visibility = View.GONE
+            }else{
+
             }
         }
 
@@ -375,6 +476,7 @@ class ClientSftpFragment : Fragment() {
             }
             viewModel.downloadFile(sftpClientService, files)
             binding.layoutBottomSelect.container.visibility = View.GONE
+            viewModel.showMultiSelectIcon.value = false
         }
 
         binding.layoutBottomSelect.btnDelete.setOnClickListener {
@@ -435,6 +537,37 @@ class ClientSftpFragment : Fragment() {
                 showToast("重命名只能选择一个文件")
             }
         }
+
+        binding.cvTransfer.setOnClickListener {
+            // todo
+            if (transferAnimator?.isRunning == true){
+                return@setOnClickListener
+            }
+
+            if (binding.cvLlSimple.visibility == View.VISIBLE) {
+                // 动画切换
+                animateWidth(binding.cvTransfer, DisplayUtils.dp2px(requireContext(), 70f),
+                    DisplayUtils.dp2px(requireContext(), 240f))
+                binding.cvLlSimple.visibility = View.GONE
+                binding.cvLlExpand.visibility = View.VISIBLE
+            } else {
+                animateWidth(binding.cvTransfer, DisplayUtils.dp2px(requireContext(), 240f),
+                    DisplayUtils.dp2px(requireContext(), 70f))
+                binding.cvLlSimple.visibility = View.VISIBLE
+                binding.cvLlExpand.visibility = View.GONE
+            }
+        }
+    }
+    private fun animateWidth(view: View, startWidth: Int, endWidth: Int) {
+        transferAnimator = ValueAnimator.ofInt(startWidth, endWidth)
+        transferAnimator?.duration = 300 // 动画持续时间 (毫秒)
+        transferAnimator?.addUpdateListener { animation ->
+            val animatedValue = animation.animatedValue as Int
+            val layoutParams = view.layoutParams
+            layoutParams.width = animatedValue
+            view.layoutParams = layoutParams
+        }
+        transferAnimator?.start()
     }
 
     private fun showBottomPopupWindow(anchorView: View) {
@@ -585,11 +718,15 @@ class ClientSftpFragment : Fragment() {
             is ClientMessageEvent.SftpConnected -> {
                 Timber.d("SftpConnected ..")
                 // list root dir
-                viewModel.listFile(sftpClientService, "/")
+                if (event.clientType is ClientType.BaseClient){
+                    viewModel.listFile(sftpClientService, "/")
+                }
             }
 
             is ClientMessageEvent.SftpConnectFail -> {
-                showToast(event.message)
+                if (event.clientType is ClientType.BaseClient){
+                    showToast(event.message)
+                }
             }
 
             is ClientMessageEvent.SftpDisconnect -> {

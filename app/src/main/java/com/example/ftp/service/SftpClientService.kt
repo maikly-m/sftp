@@ -11,7 +11,6 @@ import com.example.ftp.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 
 class SftpClientService : Service() {
@@ -66,9 +65,27 @@ class SftpClientService : Service() {
 
     fun connect(serverIp: String, port: Int, user: String, password: String): Unit {
         coroutineScope.launch {
-            model = SftpClientModel()
+            model = SftpClientModel(ClientType.BaseClient)
             model!!.connect(serverIp, port, user, password)
         }
+    }
+
+    // 分离下载
+    suspend fun download(serverIp: String, port: Int, user: String, password: String, block: suspend (model: SftpClientModel)->Unit): Unit {
+        val downloadModel = SftpClientModel(ClientType.DownloadClient)
+        downloadModel.connect(serverIp, port, user, password)
+        block(downloadModel)
+        downloadModel.disconnect()
+        Timber.d("download finish")
+    }
+
+    // 分离上传
+    suspend fun upload(serverIp: String, port: Int, user: String, password: String, block: suspend (model: SftpClientModel)->Unit): Unit {
+        val uploadModel = SftpClientModel(ClientType.UploadClient)
+        uploadModel.connect(serverIp, port, user, password)
+        block(uploadModel)
+        uploadModel.disconnect()
+        Timber.d("upload finish")
     }
 
     fun getClient(): SftpClientModel? {

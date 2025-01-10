@@ -1,12 +1,14 @@
 package com.example.ftp.ui.sftp
 
 import android.os.Environment
-import android.text.TextUtils
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.ftp.bean.ConnectInfo
+import com.example.ftp.bean.UploadInfo
 import com.example.ftp.service.SftpClientService
 import com.example.ftp.utils.MySPUtil
+import com.example.ftp.utils.delFile
 import com.example.ftp.utils.ensureLocalDirectoryExists
 import com.example.ftp.utils.getFileNameFromPath
 import com.example.ftp.utils.normalizeFilePath
@@ -16,15 +18,27 @@ import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.SftpProgressMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
-import java.io.FileInputStream
-import java.io.InputStream
 import java.util.Vector
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicLong
 
-
+/**
+ * sftp 不是线程安全的，不能同时下载，上传，或者list等操作
+ * 需要同步操作，需要多个实例
+ */
 class ClientSftpViewModel : ViewModel() {
+
+    private var connectInfo: ConnectInfo? = null
+
+    // 创建自定义的 IO Dispatcher
+    val customIODispatcher = Executors.newFixedThreadPool(2).asCoroutineDispatcher()
 
     private var currentPath: String = "/"
     private var lastCurrentPath: String = "/"
@@ -34,10 +48,21 @@ class ClientSftpViewModel : ViewModel() {
     val changeSelectType = SingleLiveEvent<Int>()
 
     private var uploadFileInputStreamJob: Job? = null
+    fun getUploadFileInputStreamJob() = uploadFileInputStreamJob
     private val _uploadFileInputStream = SingleLiveEvent<Int>()
-    private val _uploadFileProgress = SingleLiveEvent<Float>()
-    val uploadFileProgress: LiveData<Float> = _uploadFileProgress
+    private val _uploadFileProgress = SingleLiveEvent<UploadInfo>()
+    val uploadFileProgress: LiveData<UploadInfo> = _uploadFileProgress
     val uploadFileInputStream: LiveData<Int> = _uploadFileInputStream
+    private val uploadSrcQueue = ConcurrentLinkedQueue<String>()
+    private val uploadDstQueue = ConcurrentLinkedQueue<String>()
+    private val uploadSrcFilePaths = ConcurrentLinkedQueue<String>()
+    private val uploadDstFilePaths = ConcurrentLinkedQueue<String>()
+    private var uploadSize = AtomicLong(0)
+    private var uploadFileInput: InterruptibleInputStream? = null
+    fun uploadFileInputStreamJobCancel() {
+        // 通过关闭流来处理
+        uploadFileInput?.interrupted = true
+    }
 
     private var listFileJob: Job? = null
     private val _listFile = SingleLiveEvent<Int>()
@@ -47,10 +72,22 @@ class ClientSftpViewModel : ViewModel() {
     val listFileLoading: LiveData<Int> = _listFileLoading
 
     private var downloadFileJob: Job? = null
+    fun getDownloadFileJob() = downloadFileJob
     private val _downloadFile = SingleLiveEvent<Int>()
+    private val _downloadFileProgress = SingleLiveEvent<UploadInfo>()
+    val downloadFileProgress: LiveData<UploadInfo> = _downloadFileProgress
     val downloadFile: LiveData<Int> = _downloadFile
-    private val _downloadFileProgress = SingleLiveEvent<Float>()
-    val downloadFileProgress: LiveData<Float> = _downloadFileProgress
+    private val downloadSrcQueue = ConcurrentLinkedQueue<String>()
+    private val downloadDstQueue = ConcurrentLinkedQueue<String>()
+    private val downloadSrcFilePaths = ConcurrentLinkedQueue<String>()
+    private val downloadDstFilePaths = ConcurrentLinkedQueue<String>()
+    private var downloadSize = AtomicLong(0)
+    private var downloadFileInput: InterruptibleOutputStream? = null
+    fun downloadFileJobCancel() {
+        // 通过关闭流来处理
+        downloadFileInput?.interrupted = true
+    }
+
 
     private var deleteFileJob: Job? = null
     private val _deleteFile = SingleLiveEvent<Int>()
@@ -77,79 +114,7 @@ class ClientSftpViewModel : ViewModel() {
 
     init {
         changeSelectType.value = MySPUtil.getInstance().serverSortType
-    }
-
-    fun uploadFileInputStream(
-        sftpClientService: SftpClientService?,
-        inputStreams: MutableList<InputStream>,
-        remoteFilePaths: MutableList<String>,
-        allSize: Long,
-        size: Int,
-    ) {
-        if (uploadFileInputStreamJob != null && uploadFileInputStreamJob?.isActive == true) {
-            return
-        }
-        uploadFileInputStreamJob = viewModelScope.launch(Dispatchers.IO) {
-            if (inputStreams.size == remoteFilePaths.size) {
-                var uploadedBytes: Long = 0
-                var lastUploadedBytes: Long = 0
-                var totalBytes: Long = 0
-                if (allSize > 0) {
-                    totalBytes = allSize
-                } else {
-
-                }
-
-                for (i in inputStreams.indices) {
-                    val l = object : SftpProgressMonitor {
-                        override fun init(op: Int, src: String?, dest: String?, max: Long) {
-                            if (i == 0) {
-                                Timber.d("Upload Start")
-                            }
-                        }
-
-                        override fun count(count: Long): Boolean {
-                            uploadedBytes += count
-                            // 回传进度
-                            if (totalBytes > 0) {
-                                if ((uploadedBytes - lastUploadedBytes) > totalBytes / 1000 &&
-                                    (uploadedBytes - lastUploadedBytes) > 1024 * 1024
-                                ) {
-                                    // 超过千分之一并且大小大于1M，就更新进度
-                                    lastUploadedBytes = uploadedBytes
-                                    _uploadFileProgress.postValue((uploadedBytes * 100 / totalBytes).toFloat())
-                                }
-                            }
-                            return true // Return false to cancel the transfer
-                        }
-
-                        override fun end() {
-                            // 文件大小拿不到的时候，按照文件占比来回传进度
-                            if (totalBytes == 0L) {
-                                _uploadFileProgress.postValue(100f / size * (i + 1))
-                            }
-                            if (i == inputStreams.size - 1) {
-                                // 最后一个
-                                _uploadFileProgress.postValue(100f)
-                                Timber.d("Upload finished")
-                            }
-
-                        }
-                    }
-                    sftpClientService?.getClient()
-                        ?.uploadFileInputStream(inputStreams[i], remoteFilePaths[i], l)
-                }
-            }
-        }
-        uploadFileInputStreamJob?.invokeOnCompletion { throwable ->
-            if (throwable == null) {
-                Timber.d("uploadFileInputStream ok")
-                _uploadFileInputStream.postValue(1)
-            } else {
-                Timber.d("uploadFileInputStream throwable = ${throwable.message}")
-                _uploadFileInputStream.postValue(0)
-            }
-        }
+        connectInfo = MySPUtil.getInstance().clientConnectInfo
     }
 
     private fun addLocalChildrenFile(
@@ -175,7 +140,9 @@ class ClientSftpViewModel : ViewModel() {
                 )
             } else if (f.isFile) {
                 // 本地文件
-                srcFilePath.add(f.absolutePath)
+                if (!uploadSrcFilePaths.contains(f.absolutePath)){
+                    srcFilePath.add(f.absolutePath)
+                }
                 val sdcard = Environment.getExternalStorageDirectory().absolutePath
                 val absoluteSelectPath = if (selectParentPath.startsWith(sdcard)) {
                     selectParentPath
@@ -185,21 +152,18 @@ class ClientSftpViewModel : ViewModel() {
                 val p = currentPath.removeSuffix("/") + "/" + f.absolutePath.removePrefix(
                     absoluteSelectPath
                 )
-                dstFilePath.add(normalizeFilePath(p))
-                allSize[0] += f.length()
+                if (!uploadDstFilePaths.contains(normalizeFilePath(p))){
+                    dstFilePath.add(normalizeFilePath(p))
+                    allSize[0] += f.length()
+                }
             }
         }
     }
 
-    fun uploadLocalFiles(
-        sftpClientService: SftpClientService?,
-        selectParentPath: String,
-        files: List<File>
-    ) {
-        if (uploadFileInputStreamJob != null && uploadFileInputStreamJob?.isActive == true) {
-            return
-        }
-        uploadFileInputStreamJob = viewModelScope.launch(Dispatchers.IO) {
+    private fun collectLocalFiles(selectParentPath: String,
+                                   files: List<File>,
+                                   block: () -> Unit): Unit {
+        viewModelScope.launch(Dispatchers.IO) {
             val srcFilePath: MutableList<String> = mutableListOf()
             val dstFilePath: MutableList<String> = mutableListOf()
             val allSize = MutableList(1) { 0L }
@@ -220,7 +184,9 @@ class ClientSftpViewModel : ViewModel() {
                     )
                 } else if (f.isFile) {
                     // 本地文件
-                    srcFilePath.add(f.absolutePath)
+                    if (!uploadSrcFilePaths.contains(f.absolutePath)){
+                        srcFilePath.add(f.absolutePath)
+                    }
                     // 远程文件
                     val sdcard = Environment.getExternalStorageDirectory().absolutePath
                     val absoluteSelectPath = if (selectParentPath.startsWith(sdcard)) {
@@ -231,8 +197,10 @@ class ClientSftpViewModel : ViewModel() {
                     val p = currentPath.removeSuffix("/") + "/" + f.absolutePath.removePrefix(
                         absoluteSelectPath
                     )
-                    dstFilePath.add(normalizeFilePath(p))
-                    allSize[0] += f.length()
+                    if (!uploadDstFilePaths.contains(normalizeFilePath(p))){
+                        dstFilePath.add(normalizeFilePath(p))
+                        allSize[0] += f.length()
+                    }
                 }
             }
             // 升序排序，先创建文件夹
@@ -244,66 +212,153 @@ class ClientSftpViewModel : ViewModel() {
             }
 
             srcFilePath.forEach {
-                Timber.d("uploadLocalFiles srcFilePath: ${it}")
+                Timber.d("collectLocalFiles srcFilePath: ${it}")
             }
             dstFilePath.forEach {
-                Timber.d("uploadLocalFiles dstFilePath: ${it}")
+                Timber.d("collectLocalFiles dstFilePath: ${it}")
             }
             allSize.forEach {
-                Timber.d("uploadLocalFiles allSize: ${it}")
+                Timber.d("collectLocalFiles size: ${it}")
             }
 
-            if (srcFilePath.size == dstFilePath.size) {
+            // 加入队列
+            if (srcFilePath.size != 0 && srcFilePath.size == dstFilePath.size){
+                uploadSrcQueue.addAll(srcFilePath)
+                uploadDstQueue.addAll(dstFilePath)
+                uploadSrcFilePaths.addAll(srcFilePath)
+                uploadDstFilePaths.addAll(dstFilePath)
+                uploadSize.set(uploadSize.get()+allSize[0])
+                Timber.d("collectLocalFiles all size: ${uploadSize.get()}")
+                block()
+            }
+        }
+
+    }
+
+    fun uploadLocalFiles(
+        sftpClientService: SftpClientService?,
+        selectParentPath: String,
+        files: List<File>
+    ) {
+        collectLocalFiles(selectParentPath, files){
+            if (uploadFileInputStreamJob != null && uploadFileInputStreamJob?.isActive == true) {
+                return@collectLocalFiles
+            }
+            uploadFileInputStreamJob = viewModelScope.launch(customIODispatcher) {
                 var uploadedBytes: Long = 0
                 var lastUploadedBytes: Long = 0
-                var totalBytes: Long = allSize[0]
+                var uploadedCount: Int = 0
 
-                for (i in srcFilePath.indices) {
-                    val l = object : SftpProgressMonitor {
-                        override fun init(op: Int, src: String?, dest: String?, max: Long) {
-                            if (i == 0) {
-                                Timber.d("Upload Start")
-                            }
-                        }
+                // 循环获取数据并移除
+                Timber.d("Upload Start")
+                // 使用分离的客户端上传
+                connectInfo?.run {
+                    sftpClientService?.upload(
+                        serverIp = ip,
+                        port = port,
+                        user = name,
+                        password = pw,
+                    ){ model ->
+                        while (true) {
+                            val uploadSrc = uploadSrcQueue.poll() ?: break // 获取并移除队首元素
+                            val uploadDst = uploadDstQueue.poll() ?: break // 获取并移除队首元素
+                            val l = object : SftpProgressMonitor {
+                                override fun init(op: Int, src: String?, dest: String?, max: Long) {
+                                    UploadInfo(
+                                        progress = -1f,
+                                        currentCount = 0,
+                                        count = 0,
+                                        currentFileSizes = 0,
+                                        fileSizes = 0
+                                    ).run {
+                                        _uploadFileProgress.postValue(this)
+                                    }
+                                }
 
-                        override fun count(count: Long): Boolean {
-                            uploadedBytes += count
-                            // 回传进度
-                            if (totalBytes > 0) {
-                                if ((uploadedBytes - lastUploadedBytes) > totalBytes / 1000 &&
-                                    (uploadedBytes - lastUploadedBytes) > 1024 * 1024
-                                ) {
-                                    // 超过千分之一并且大小大于1M，就更新进度
-                                    lastUploadedBytes = uploadedBytes
-                                    _uploadFileProgress.postValue((uploadedBytes * 100 / totalBytes).toFloat())
+                                override fun count(count: Long): Boolean {
+                                    uploadedBytes += count
+                                    // 回传进度
+                                    if (uploadSize.get() > 0) {
+                                        if ((uploadedBytes - lastUploadedBytes) > uploadSize.get() / 1000 &&
+                                            (uploadedBytes - lastUploadedBytes) > 1024 * 1024
+                                        ) {
+                                            // 超过千分之一并且大小大于1M，就更新进度
+                                            lastUploadedBytes = uploadedBytes
+                                            UploadInfo(
+                                                progress = (uploadedBytes * 100 / uploadSize.get()).toFloat(),
+                                                currentCount = uploadedCount,
+                                                count = uploadSrcFilePaths.size,
+                                                currentFileSizes = uploadedBytes,
+                                                fileSizes = uploadSize.get()
+                                            ).run {
+                                                _uploadFileProgress.postValue(this)
+                                            }
+                                        }
+                                    }
+                                    return true // Return false to cancel the transfer
+                                }
+
+                                override fun end() {
+                                    val peek = uploadSrcQueue.peek()
+                                    uploadedCount += 1
+                                    if (peek == null) {
+                                        // 最后一个
+                                        UploadInfo(
+                                            progress = 100f,
+                                            currentCount = uploadedCount,
+                                            count = uploadSrcFilePaths.size,
+                                            currentFileSizes = uploadedBytes,
+                                            fileSizes = uploadSize.get()
+                                        ).run {
+                                            _uploadFileProgress.postValue(this)
+                                        }
+                                        uploadSize.set(0)
+                                        uploadSrcFilePaths.clear()
+                                        uploadDstFilePaths.clear()
+                                        uploadedCount = 0
+                                        Timber.d("Upload finished")
+                                    }
                                 }
                             }
-                            return true // Return false to cancel the transfer
-                        }
+                            Timber.d("uploadLocalFiles uploadSrc = ${uploadSrc}")
+                            InterruptibleInputStream(uploadSrc).run {
+                                uploadFileInput = this
+                                try {
+                                    model.uploadFileInputStream(this, uploadDst, l)
+                                    // sftpClientService?.getClient()?.uploadFileInputStream(this, uploadDst, l)
+                                } catch (e: Exception) {
+                                    Timber.d("uploadFileInterrupt e ${e.message}")
+                                    if (e.message?.contains(InterruptibleInputStream.INTERRUPT_MSG) == true) {
+                                        model.deleteFile(uploadDst)
+                                        cancel(InterruptibleInputStream.INTERRUPT_MSG, e)
+                                    } else {
 
-                        override fun end() {
-                            if (i == srcFilePath.size - 1) {
-                                // 最后一个
-                                _uploadFileProgress.postValue(100f)
-                                Timber.d("Upload finished")
+                                    }
+                                }
                             }
-
                         }
-                    }
-                    Timber.d("uploadLocalFiles srcFilePath[${i}]: ${srcFilePath[i]}")
-                    sftpClientService?.getClient()
-                        ?.uploadFileInputStream(FileInputStream(srcFilePath[i]), dstFilePath[i], l)
-                }
-            }
 
-        }
-        uploadFileInputStreamJob?.invokeOnCompletion { throwable ->
-            if (throwable == null) {
-                Timber.d("uploadLocalFiles ok")
-                _uploadFileInputStream.postValue(1)
-            } else {
-                Timber.d("uploadLocalFiles throwable = ${throwable.message}")
-                _uploadFileInputStream.postValue(0)
+                    }
+                }
+
+
+            }
+            uploadFileInputStreamJob?.invokeOnCompletion { throwable ->
+                if (throwable == null) {
+                    Timber.d("uploadLocalFiles ok")
+                    _uploadFileInputStream.postValue(1)
+                } else {
+                    Timber.d("uploadLocalFiles throwable = ${throwable.message}")
+                    if (throwable.message?.contains(InterruptibleInputStream.INTERRUPT_MSG) == true) {
+                        // skip
+                    } else {
+                        _uploadFileInputStream.postValue(0)
+                    }
+
+                }
+                uploadSize.set(0)
+                uploadSrcFilePaths.clear()
+                uploadDstFilePaths.clear()
             }
         }
     }
@@ -359,7 +414,7 @@ class ClientSftpViewModel : ViewModel() {
         }
     }
 
-    private suspend fun addChildrenFile(
+    private suspend fun addRemoteChildrenFile(
         sftpClientService: SftpClientService?,
         dirName: String,
         srcFilePath: MutableList<String>,
@@ -379,7 +434,7 @@ class ClientSftpViewModel : ViewModel() {
                         continue
                     }
                     if (i.attrs.isDir) {
-                        addChildrenFile(
+                        addRemoteChildrenFile(
                             sftpClientService = sftpClientService,
                             dirName = dirName + "/" + i.filename,
                             srcFilePath = srcFilePath,
@@ -387,23 +442,22 @@ class ClientSftpViewModel : ViewModel() {
                             allSize = allSize,
                         )
                     } else if (i.attrs.isReg) {
-                        allSize[0] += i.attrs.size
-                        srcFilePath.add(dirName + "/" + i.filename)
-                        dstFilePath.add(dirName + "/" + i.filename)
+                        val n = dirName + "/" + i.filename
+                        if (!downloadSrcFilePaths.contains(n)){
+                            srcFilePath.add(n)
+                        }
+                        if (!downloadDstFilePaths.contains(n)){
+                            dstFilePath.add(n)
+                            allSize[0] += i.attrs.size
+                        }
                     }
                 }
             }
         }
     }
 
-    fun downloadFile(
-        sftpClientService: SftpClientService?,
-        files: List<ChannelSftp.LsEntry>,
-    ) {
-        if (downloadFileJob != null && downloadFileJob?.isActive == true) {
-            return
-        }
-        downloadFileJob = viewModelScope.launch(Dispatchers.IO) {
+    private fun collectRemoteFiles(sftpClientService: SftpClientService?,files: List<ChannelSftp.LsEntry>, block: () -> Unit): Unit {
+        viewModelScope.launch(Dispatchers.IO) {
             val srcFilePath: MutableList<String> = mutableListOf()
             val dstFilePath: MutableList<String> = mutableListOf()
             val allSize = MutableList(1) { 0L }
@@ -413,13 +467,18 @@ class ClientSftpViewModel : ViewModel() {
             }
             files.forEach {
                 if (it.attrs.isReg) {
-                    srcFilePath.add(currentPath.removeSuffix("/") + "/" + it.filename)
-                    dstFilePath.add(currentPath.removeSuffix("/") + "/" + it.filename)
-                    allSize[0] += it.attrs.size
+                    val n = currentPath.removeSuffix("/") + "/" + it.filename
+                    if (!downloadSrcFilePaths.contains(n)){
+                        srcFilePath.add(n)
+                    }
+                    if (!downloadDstFilePaths.contains(n)){
+                        dstFilePath.add(n)
+                        allSize[0] += it.attrs.size
+                    }
                     // 文件
                 } else if (it.attrs.isDir) {
                     // 文件夹
-                    addChildrenFile(
+                    addRemoteChildrenFile(
                         sftpClientService,
                         currentPath.removeSuffix("/") + "/" + it.filename,
                         srcFilePath,
@@ -437,77 +496,176 @@ class ClientSftpViewModel : ViewModel() {
             }
 
             srcFilePath.forEach {
-                Timber.d("downloadFile srcFilePath: ${it}")
+                Timber.d("collectRemoteFiles srcFilePath: ${it}")
             }
             dstFilePath.forEach {
-                Timber.d("downloadFile dstFilePath: ${it}")
+                Timber.d("collectRemoteFiles dstFilePath: ${it}")
             }
             allSize.forEach {
-                Timber.d("downloadFile allSize: ${it}")
+                Timber.d("collectRemoteFiles allSize: ${it}")
             }
-            //todo 检测是否覆盖相同的文件
+            // 加入队列
+            if (srcFilePath.size != 0 && srcFilePath.size == dstFilePath.size){
+                downloadSrcQueue.addAll(srcFilePath)
+                downloadDstQueue.addAll(dstFilePath)
+                downloadSrcFilePaths.addAll(srcFilePath)
+                downloadDstFilePaths.addAll(dstFilePath)
+                downloadSize.set(downloadSize.get()+allSize[0])
+                Timber.d("collectRemoteFiles all size: ${downloadSize.get()}")
+                block()
+            }
+        }
+    }
 
-            if (srcFilePath.size == dstFilePath.size) {
-                var uploadedBytes: Long = 0
-                var lastUploadedBytes: Long = 0
-                var totalBytes: Long = 0
-                if (allSize[0] > 0) {
-                    totalBytes = allSize[0]
-                } else {
+    fun downloadFile(
+        sftpClientService: SftpClientService?,
+        files: List<ChannelSftp.LsEntry>,
+    ) {
+        collectRemoteFiles(sftpClientService, files){
+            if (downloadFileJob != null && downloadFileJob?.isActive == true) {
+                return@collectRemoteFiles
+            }
+            downloadFileJob = viewModelScope.launch(customIODispatcher) {
+                var downloadedBytes: Long = 0
+                var lastDownloadedBytes: Long = 0
+                var downloadedCount: Int = 0
 
-                }
-
+                // 循环获取数据并移除
+                Timber.d("Download Start")
                 //按照配置下载到选定的目录
                 val parentPaths = MySPUtil.getInstance().downloadSavePath
                 // 所有文件都是基于sdcard创建的
                 val sdcardPath = normalizeFilePath(Environment.getExternalStorageDirectory().absolutePath+"/"+ parentPaths)
                 ensureLocalDirectoryExists(sdcardPath)
-                Timber.d("downloadFile sdcardPath: ${sdcardPath}")
-                for (i in srcFilePath.indices) {
+                // 使用分离的客户端下载
+                connectInfo?.run {
+                    sftpClientService?.download(
+                        serverIp = ip,
+                        port = port,
+                        user = name,
+                        password = pw,
+                    ){ model ->
+                        while (true) {
+                            val downloadSrc = downloadSrcQueue.poll() ?: break // 获取并移除队首元素
+                            val downloadDst = downloadDstQueue.poll() ?: break // 获取并移除队首元素
+                            val l = object : SftpProgressMonitor {
+                                override fun init(op: Int, src: String?, dest: String?, max: Long) {
+                                    UploadInfo(
+                                        progress = -1f,
+                                        currentCount = 0,
+                                        count = 0,
+                                        currentFileSizes = 0,
+                                        fileSizes = 0
+                                    ).run {
+                                        _downloadFileProgress.postValue(this)
+                                    }
+                                }
 
-                    val l = object : SftpProgressMonitor {
-                        override fun init(op: Int, src: String?, dest: String?, max: Long) {
-                            if (i == 0) {
-                                Timber.d("Download Start")
-                            }
-                        }
+                                override fun count(count: Long): Boolean {
+                                    downloadedBytes += count
+                                    // 回传进度
+                                    if (downloadSize.get() > 0) {
+                                        if ((downloadedBytes - lastDownloadedBytes) > downloadSize.get() / 1000 &&
+                                            (downloadedBytes - lastDownloadedBytes) > 1024 * 1024
+                                        ) {
+                                            // 超过千分之一并且大小大于1M，就更新进度
+                                            lastDownloadedBytes = downloadedBytes
+                                            UploadInfo(
+                                                progress = (downloadedBytes * 100 / downloadSize.get()).toFloat(),
+                                                currentCount = downloadedCount,
+                                                count = downloadSrcFilePaths.size,
+                                                currentFileSizes = downloadedBytes,
+                                                fileSizes = downloadSize.get()
+                                            ).run {
+                                                _downloadFileProgress.postValue(this)
+                                            }
+                                        }
+                                    }
+                                    return true // Return false to cancel the transfer
+                                }
 
-                        override fun count(count: Long): Boolean {
-                            uploadedBytes += count
-                            // 回传进度
-                            if (totalBytes > 0) {
-                                if ((uploadedBytes - lastUploadedBytes) > totalBytes / 1000 &&
-                                    (uploadedBytes - lastUploadedBytes) > 1024 * 1024
-                                ) {
-                                    // 超过千分之一并且大小大于1M，就更新进度
-                                    lastUploadedBytes = uploadedBytes
-                                    _downloadFileProgress.postValue((uploadedBytes * 100 / totalBytes).toFloat())
+                                override fun end() {
+                                    val peek = downloadSrcQueue.peek()
+                                    downloadedCount += 1
+                                    if (peek == null) {
+                                        // 最后一个
+                                        UploadInfo(
+                                            progress = 100f,
+                                            currentCount = downloadedCount,
+                                            count = downloadSrcFilePaths.size,
+                                            currentFileSizes = downloadedBytes,
+                                            fileSizes = downloadSize.get()
+                                        ).run {
+                                            _downloadFileProgress.postValue(this)
+                                        }
+                                        downloadSize.set(0)
+                                        downloadSrcFilePaths.clear()
+                                        downloadDstFilePaths.clear()
+                                        downloadedCount = 0
+                                        Timber.d("Download finished")
+                                    }
                                 }
                             }
-                            return true // Return false to cancel the transfer
-                        }
+                            // at last
+                            val dstFilePath = normalizeFilePath("${sdcardPath}/${getFileNameFromPath(downloadDst)}")
+                            Timber.d("downloadFile dstFilePath = ${dstFilePath}")
 
-                        override fun end() {
-                            if (i == srcFilePath.size - 1) {
-                                // 最后一个
-                                _downloadFileProgress.postValue(100f)
-                                Timber.d("Download finished")
+                            InterruptibleOutputStream(dstFilePath).run {
+                                downloadFileInput = this
+                                try {
+                                    model.downloadFile(downloadSrc, this, l)
+                                } catch (e: Exception) {
+                                    if (e.message?.contains(InterruptibleOutputStream.INTERRUPT_MSG) == true) {
+                                        // 删除本地文件
+                                        delFile(dstFilePath)
+                                        cancel(InterruptibleOutputStream.INTERRUPT_MSG, e)
+                                    } else {
+
+                                    }
+                                }
                             }
-
                         }
                     }
-                    dstFilePath[i] = "${sdcardPath}/${getFileNameFromPath(dstFilePath[i])}"
-                    sftpClientService?.getClient()?.downloadFile(srcFilePath[i], normalizeFilePath(dstFilePath[i]), l)
+
+            }
+            downloadFileJob?.invokeOnCompletion { throwable ->
+                if (throwable == null) {
+                    Timber.d("downloadFileJob ok")
+                    _downloadFile.postValue(1)
+                } else {
+                    Timber.d("downloadFileJob throwable = ${throwable.message}")
+                    if (throwable.message?.contains(InterruptibleOutputStream.INTERRUPT_MSG) == true) {
+                        // skip
+                    } else {
+                        _downloadFile.postValue(0)
+                    }
+
                 }
+                downloadSize.set(0)
+                downloadSrcFilePaths.clear()
+                downloadDstFilePaths.clear()
             }
         }
-        downloadFileJob?.invokeOnCompletion { throwable ->
+
+        }
+    }
+
+    private fun deleteRemoteFile(
+        sftpClientService: SftpClientService?,
+        path: String,
+    ) {
+        if (deleteFileJob != null && deleteFileJob?.isActive == true) {
+            return
+        }
+        deleteFileJob = viewModelScope.launch(Dispatchers.IO) {
+            sftpClientService?.getClient()
+                ?.deleteFile(path)
+        }
+        deleteFileJob?.invokeOnCompletion { throwable ->
             if (throwable == null) {
-                Timber.d("downloadFile ok")
-                _downloadFile.postValue(1)
+                Timber.d("deleteRemoteFile ok")
             } else {
-                Timber.d("downloadFile throwable = ${throwable.message}")
-                _downloadFile.postValue(0)
+                Timber.d("deleteRemoteFile throwable = ${throwable.message}")
             }
         }
     }
@@ -586,5 +744,11 @@ class ClientSftpViewModel : ViewModel() {
                 _mkdir.postValue(0)
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // 关闭自定义线程池
+        (customIODispatcher.executor as? ExecutorService)?.shutdown()
     }
 }

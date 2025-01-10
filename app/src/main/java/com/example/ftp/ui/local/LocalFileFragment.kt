@@ -14,7 +14,6 @@ import com.example.ftp.bean.FileInfo
 import com.example.ftp.databinding.FragmentLocalFileBinding
 import com.example.ftp.databinding.ItemFileGridItemViewBinding
 import com.example.ftp.databinding.ItemFileGridViewBinding
-import com.example.ftp.databinding.ItemGridListNameBinding
 import com.example.ftp.databinding.ItemNoMoreViewBinding
 import com.example.ftp.databinding.ItemTitleViewBinding
 import com.example.ftp.room.bean.FileTrack
@@ -23,7 +22,7 @@ import com.example.ftp.ui.view.GridSpacingItemDecoration
 import com.example.ftp.ui.view.SpaceItemDecoration
 import com.example.ftp.utils.DisplayUtils
 import com.example.ftp.utils.formatTimeWithDay
-import com.example.ftp.utils.sortFiles
+import com.example.ftp.utils.sortFileTracks
 
 class LocalFileFragment : Fragment() {
 
@@ -71,7 +70,7 @@ class LocalFileFragment : Fragment() {
                 // 设置 RecyclerView 的适配器
                 recyclerView.layoutManager = LinearLayoutManager(requireContext())
                 // 分类数据
-                sortFiles(data, 5)
+                sortFileTracks(data, 5)
                 // 切割数据，按照天算
                 val fileItems = mutableListOf<FileItem>()
 

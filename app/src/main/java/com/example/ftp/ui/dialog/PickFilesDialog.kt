@@ -40,6 +40,7 @@ import com.example.ftp.utils.formatTimeWithSimpleDateFormat
 import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.getScreenSizeHeight
 import com.example.ftp.utils.getScreenSizeWidth
+import com.example.ftp.utils.sortFiles
 import org.greenrobot.eventbus.EventBus
 import timber.log.Timber
 import java.io.File
@@ -194,12 +195,14 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
             if (it==1) {
                 //show
                 d = viewModel.listFileData?: mutableListOf()
-                listFileAdapter?.items?.clear()
-                listFileAdapter?.items?.addAll(d!!)
-                listFileAdapter?.checkList?.addAll(MutableList(d!!.size){false})
-                //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
-                listFileAdapter?.notifyDataSetChanged()
-
+                d?.let {
+                    listFileAdapter?.items?.clear()
+                    sortFiles(d!!, viewModel.changeSelectType.value)
+                    listFileAdapter?.items?.addAll(d!!)
+                    listFileAdapter?.checkList?.addAll(MutableList(d!!.size){false})
+                    //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
+                    listFileAdapter?.notifyDataSetChanged()
+                }
 
                 nameFileAdapter?.items?.clear()
                 val p = viewModel.getCurrentFilePath()
@@ -257,69 +260,13 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
                 MySPUtil.getInstance().clientSortType = it
                 //show
                 d = viewModel.listFileData ?: mutableListOf()
-                listFileAdapter!!.items.clear()
-                sortFiles()
-                listFileAdapter!!.items.addAll(d!!)
-                listFileAdapter!!.checkList.addAll(MutableList(d!!.size) { false })
-                //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
-                listFileAdapter!!.notifyDataSetChanged()
-            }
-        }
-    }
-
-    private fun sortFiles() {
-        //排序
-        //        "按名称",
-        //        "按类型",
-        //        "按大小升序",
-        //        "按大小降序",
-        //        "按时间升序",
-        //        "按时间降序",
-        when (viewModel.changeSelectType.value) {
-            0 -> {
-                d?.sortBy { data ->
-                    data.name
-                }
-            }
-
-            1 -> {
-                d?.sortBy { data ->
-                    val extension = data.name.substringAfterLast('.', "")
-                    if (TextUtils.isEmpty(extension)) {
-                        data.name
-                    } else {
-                        extension
-                    }
-                }
-            }
-
-            2 -> {
-                d?.sortBy { data ->
-                    data.length()
-                }
-            }
-
-            3 -> {
-                d?.sortByDescending { data ->
-                    data.length()
-                }
-            }
-
-            4 -> {
-                d?.sortBy { data ->
-                    data.lastModified()
-                }
-            }
-
-            5 -> {
-                d?.sortByDescending { data ->
-                    data.lastModified()
-                }
-            }
-
-            else -> {
-                d?.sortBy { data ->
-                    data.name
+                d?.let {
+                    listFileAdapter!!.items.clear()
+                    sortFiles(d!!, viewModel.changeSelectType.value)
+                    listFileAdapter!!.items.addAll(d!!)
+                    listFileAdapter!!.checkList.addAll(MutableList(d!!.size) { false })
+                    //binding.rv.adapter?.notifyItemRangeChanged(0, d.size-1)
+                    listFileAdapter!!.notifyDataSetChanged()
                 }
             }
         }

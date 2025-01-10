@@ -20,20 +20,20 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.io.OutputStream
 import java.util.Vector
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-class SftpClientModel {
+class SftpClientModel(val type: ClientType) {
 
     private var _password: String = ""
     private var _username: String = ""
     private var _ftpPort: Int = 2222
     private var _ftpServer: String = ""
 
-    private val coroutineScope = CoroutineScope(Dispatchers.IO) // 在IO线程中运行协程
     private var session: Session? = null
     private var channelSftp: ChannelSftp? = null
     private var initLockInt = AtomicInteger(0)
@@ -42,7 +42,8 @@ class SftpClientModel {
         ftpServer: String,
         ftpPort: Int,
         username: String,
-        password: String
+        password: String,
+        reconnect: Boolean = false
     ) {
         Timber.d("SftpClientModel connect start")
         if (initLockInt.get() != 0) {
@@ -82,7 +83,9 @@ class SftpClientModel {
             session!!.connect()
             channelSftp = session!!.openChannel("sftp") as ChannelSftp
             channelSftp!!.connect()
-            EventBus.getDefault().post(ClientMessageEvent.SftpConnected("连接成功"))
+            if (!reconnect){
+                EventBus.getDefault().post(ClientMessageEvent.SftpConnected(type, "连接成功"))
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             channelSftp?.disconnect()
@@ -91,11 +94,11 @@ class SftpClientModel {
             session = null
             if (e is JSchException) {
                 if (e.cause?.message?.contains("java.net.SocketTimeoutException") == true){
-                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail("连接异常"))
+                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(type, "连接异常"))
                 }else if (e.cause?.message?.contains("java.net.NoRouteToHostException") == true) {
-                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail("连接的IP异常"))
+                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(type, "连接的IP异常"))
                 }else{
-                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail("连接失败"))
+                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(type, "连接失败"))
                 }
             }
         } finally {
@@ -109,7 +112,7 @@ class SftpClientModel {
         channelSftp = null
         session = null
         initLockInt.set(0)
-        EventBus.getDefault().post(ClientMessageEvent.SftpDisconnect("连接断开"))
+        EventBus.getDefault().post(ClientMessageEvent.SftpDisconnect(type, "连接断开"))
     }
 
     private fun checkConnect(block: () -> Unit) {
@@ -133,7 +136,7 @@ class SftpClientModel {
     private fun reconnect() {
         if (!TextUtils.isEmpty(_username) && !TextUtils.isEmpty(_password)) {
             Timber.d("reconnect ...")
-            connect(_ftpServer, _ftpPort, _username, _password)
+            connect(_ftpServer, _ftpPort, _username, _password, true)
         }
     }
 
@@ -359,6 +362,32 @@ class SftpClientModel {
                         e.printStackTrace()
                         continuation.resumeWithException(e)
                     } finally {
+                    }
+                }
+            } catch (e: Exception) {
+                // 捕获异常并通过 continuation 恢复异常状态
+                continuation.resumeWithException(e)
+            }
+        }
+    }
+    // 下载文件
+    suspend fun downloadFile(
+        src: String,
+        dst: OutputStream,
+        l: SftpProgressMonitor
+    ): Boolean {
+        return suspendCoroutine { continuation ->
+            try {
+                checkConnect {
+                    try {
+                        Timber.d("downloadFile OutputStream")
+                        channelSftp?.get(src, dst, l)
+                        continuation.resume(true)
+                    } catch (e: SftpException) {
+                        e.printStackTrace()
+                        continuation.resumeWithException(e)
+                    } finally {
+                        dst.close()
                     }
                 }
             } catch (e: Exception) {

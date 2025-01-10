@@ -35,6 +35,7 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import com.example.ftp.R
+import com.example.ftp.databinding.DialogCustomAlertBinding
 import com.example.ftp.databinding.DialogCustomInputBinding
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.room.bean.FileTrack
@@ -579,6 +580,31 @@ fun ensureLocalDirectoryExists(path: String): Boolean {
         file.mkdirs() // 创建文件夹，包括中间路径
     }
 }
+fun delFile(filePath: String): Boolean {
+    val file = File(filePath)
+    return if (file.exists() && file.isFile) {
+        file.delete()
+    } else {
+        false
+    }
+}
+fun deleteDirectory(directoryPath: String): Boolean {
+    val directory = File(directoryPath)
+    if (directory.exists() && directory.isDirectory) {
+        val files = directory.listFiles()
+        if (files != null) {
+            for (file in files) {
+                if (file.isDirectory) {
+                    deleteDirectory(file.absolutePath) // 递归删除子目录
+                } else {
+                    file.delete() // 删除文件
+                }
+            }
+        }
+    }
+    return directory.delete() // 删除空目录
+}
+
 fun isFileNameValid(fileName: String): Boolean {
     // 定义文件名合法性规则的正则表达式
     val regex = Regex("^[^<>:\"/\\\\|?*]+$") // 文件名不能包含 < > : " / \ | ? *
@@ -665,6 +691,34 @@ fun showCustomInputDialog(context: Context, title: String, hint: String, cancel:
         } else {
 
         }
+    }
+
+    // 显示对话框
+    alertDialog.show()
+}
+
+fun showCustomAlertDialog(context: Context, title: String, message: String, cancel: () -> Unit, ok: () -> Unit,) {
+    // 加载自定义布局
+    val binding = DialogCustomAlertBinding.inflate(LayoutInflater.from(context), null, false)
+    val dialogView = binding.root
+
+    binding.tvTitle.text = title
+    binding.tvMsg.text = message
+
+    // 创建 AlertDialog
+    val alertDialog = AlertDialog.Builder(context)
+        .setView(dialogView)
+        .setCancelable(false) // 点击外部是否可以取消
+        .create()
+
+    // 处理按钮点击事件
+    binding.btnCancel.setOnClickListener {
+        cancel()
+        alertDialog.dismiss() // 关闭对话框
+    }
+    binding.btnOk.setOnClickListener {
+        ok()
+        alertDialog.dismiss() // 关闭对话框
     }
 
     // 显示对话框
@@ -805,7 +859,7 @@ fun sortFiles(d: Vector<ChannelSftp.LsEntry>, value: Int?) {
     }
 }
 
-fun sortFiles(d: MutableList<FileTrack>, value: Int?) {
+fun sortFileTracks(d: MutableList<FileTrack>, value: Int?) {
     //排序
     //        "按名称",
     //        "按类型",
@@ -852,6 +906,64 @@ fun sortFiles(d: MutableList<FileTrack>, value: Int?) {
         5 -> {
             d.sortByDescending { data ->
                 data.mTime
+            }
+        }
+
+        else -> {
+            d.sortBy { data ->
+                data.name
+            }
+        }
+    }
+}
+
+fun sortFiles(d: MutableList<File>, value: Int?) {
+    //排序
+    //        "按名称",
+    //        "按类型",
+    //        "按大小升序",
+    //        "按大小降序",
+    //        "按时间升序",
+    //        "按时间降序",
+    when (value) {
+        0 -> {
+            d.sortBy { data ->
+                data.name
+            }
+        }
+
+        1 -> {
+            d.sortBy { data ->
+                val extension = data.name.substringAfterLast('.', "")
+                if (TextUtils.isEmpty(extension)) {
+                    data.name
+                } else {
+                    extension
+                }
+            }
+        }
+
+        2 -> {
+            d.sortBy { data ->
+                data.length()
+            }
+        }
+
+        3 -> {
+            d.sortByDescending { data ->
+                data.length()
+            }
+        }
+
+        4 -> {
+            d.sortBy { data ->
+                data.lastModified()
+            }
+        }
+
+        5 -> {
+            d.sortByDescending { data ->
+                data.lastModified()
             }
         }
 
