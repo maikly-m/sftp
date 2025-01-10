@@ -145,6 +145,14 @@ class MainViewModel : ViewModel() {
                 }
             }
 
+            "text" -> {
+                textSuffixType.forEach {
+                    fileTrackDao.getByType(it)?.run {
+                        f.addAll(this)
+                    }
+                }
+            }
+
             "zip" -> {
                 zipSuffixType.forEach {
                     fileTrackDao.getByType(it)?.run {

@@ -7,13 +7,15 @@
     </data>
 
     <TextView
-        android:gravity="center"
+        android:padding="5dp"
+        android:gravity="start|center_vertical"
         android:id="@+id/textView"
         android:layout_width="match_parent"
-        android:layout_height="20dp"
+        android:layout_height="36dp"
         android:textColor="@color/color_434242"
         android:text="2020-02-02"
-        android:textSize="12sp"/>
+        android:textStyle="bold"
+        android:textSize="15sp"/>
 
 </layout>
 

@@ -563,7 +563,7 @@ open class PickFilesDialog(outCancel: Boolean) : DialogFragment() {
                     binding.ll.postDelayed({popupWindow?.dismiss()},100)
                 }
                 if (viewModel.changeSelectType.value == adapterPosition) {
-                    binding.tvName.setTextColor(Color.BLUE)
+                    binding.tvName.setTextColor(GetProvider.get().context.getColor(R.color.color_1296db))
                 }else{
                     binding.tvName.setTextColor(Color.BLACK)
                 }
