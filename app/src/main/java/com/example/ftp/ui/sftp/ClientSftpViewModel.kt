@@ -82,10 +82,10 @@ class ClientSftpViewModel : ViewModel() {
     private val downloadSrcFilePaths = ConcurrentLinkedQueue<String>()
     private val downloadDstFilePaths = ConcurrentLinkedQueue<String>()
     private var downloadSize = AtomicLong(0)
-    private var downloadFileInput: InterruptibleOutputStream? = null
+    private var downloadFileOutput: InterruptibleOutputStream? = null
     fun downloadFileJobCancel() {
         // 通过关闭流来处理
-        downloadFileInput?.interrupted = true
+        downloadFileOutput?.interrupted = true
     }
 
 
@@ -325,15 +325,17 @@ class ClientSftpViewModel : ViewModel() {
                                 uploadFileInput = this
                                 try {
                                     model.uploadFileInputStream(this, uploadDst, l)
-                                    // sftpClientService?.getClient()?.uploadFileInputStream(this, uploadDst, l)
                                 } catch (e: Exception) {
-                                    Timber.d("uploadFileInterrupt e ${e.message}")
-                                    if (e.message?.contains(InterruptibleInputStream.INTERRUPT_MSG) == true) {
+                                    Timber.d("uploadFileInterrupt e ${e}")
+                                    sftpClientService.other(
+                                        serverIp = ip,
+                                        port = port,
+                                        user = name,
+                                        password = pw,
+                                    ){ model ->
                                         model.deleteFile(uploadDst)
-                                        cancel(InterruptibleInputStream.INTERRUPT_MSG, e)
-                                    } else {
-
                                     }
+                                    cancel(InterruptibleInputStream.INTERRUPT_MSG, InterruptedException(InterruptibleInputStream.INTERRUPT_MSG))
                                 }
                             }
                         }
@@ -611,17 +613,14 @@ class ClientSftpViewModel : ViewModel() {
                             Timber.d("downloadFile dstFilePath = ${dstFilePath}")
 
                             InterruptibleOutputStream(dstFilePath).run {
-                                downloadFileInput = this
+                                downloadFileOutput = this
                                 try {
                                     model.downloadFile(downloadSrc, this, l)
                                 } catch (e: Exception) {
-                                    if (e.message?.contains(InterruptibleOutputStream.INTERRUPT_MSG) == true) {
-                                        // 删除本地文件
-                                        delFile(dstFilePath)
-                                        cancel(InterruptibleOutputStream.INTERRUPT_MSG, e)
-                                    } else {
-
-                                    }
+                                    // 删除本地文件
+                                    delFile(dstFilePath)
+                                    Timber.d("downloadFile delFile, dstFilePath = ${dstFilePath}")
+                                    cancel(InterruptibleOutputStream.INTERRUPT_MSG, InterruptedException(InterruptibleOutputStream.INTERRUPT_MSG))
                                 }
                             }
                         }

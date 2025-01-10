@@ -1,6 +1,7 @@
 package com.example.ftp.service
 
 import android.text.TextUtils
+import autovaluegson.shaded.com.google.common.collect.ObjectArrays
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.utils.showToast
@@ -37,6 +38,10 @@ class SftpClientModel(val type: ClientType) {
     private var session: Session? = null
     private var channelSftp: ChannelSftp? = null
     private var initLockInt = AtomicInteger(0)
+    private val lock = Object()
+
+    fun isConnected() = channelSftp?.isConnected?:false
+    fun isConnecting() = initLockInt.get() == 1
 
     fun connect(
         ftpServer: String,
@@ -116,21 +121,23 @@ class SftpClientModel(val type: ClientType) {
     }
 
     private fun checkConnect(block: () -> Unit) {
-        if (initLockInt.get() != 0) {
-            Timber.d("init ...")
+        synchronized(lock){
+            if (initLockInt.get() != 0) {
+                Timber.d("init ...")
+                block()
+                return
+            }
+            if (channelSftp == null) {
+                // reconnect
+                reconnect()
+            } else if (channelSftp?.isConnected == false) {
+                // reconnect
+                reconnect()
+            } else {
+                //continue
+            }
             block()
-            return
         }
-        if (channelSftp == null) {
-            // reconnect
-            reconnect()
-        } else if (channelSftp?.isConnected == false) {
-            // reconnect
-            reconnect()
-        } else {
-            //continue
-        }
-        block()
     }
 
     private fun reconnect() {

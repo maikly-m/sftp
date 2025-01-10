@@ -46,6 +46,7 @@ import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.isFileNameValid
 import com.example.ftp.utils.isFolderNameValid
 import com.example.ftp.utils.showCustomAlertDialog
+import com.example.ftp.utils.showCustomFileInfoDialog
 import com.example.ftp.utils.showCustomInputDialog
 import com.example.ftp.utils.showToast
 import com.example.ftp.utils.sortFiles
@@ -480,7 +481,7 @@ class ClientSftpFragment : Fragment() {
         }
 
         binding.layoutBottomSelect.btnDelete.setOnClickListener {
-            //删除
+            // 删除
             val files = mutableListOf<ChannelSftp.LsEntry>()
             listFileAdapter.checkList.forEachIndexed { index, b ->
                 if (b) {
@@ -488,7 +489,17 @@ class ClientSftpFragment : Fragment() {
                     files.add(listFileAdapter.items[index])
                 }
             }
-            viewModel.deleteFiles(sftpClientService, files)
+            if (files.size == 0){
+                showToast("至少选择一个文件删除")
+                return@setOnClickListener
+            }
+            // 确认
+            showCustomAlertDialog(requireContext(), "提示", "是否删除?", {
+                // cancel
+                viewModel.showMultiSelectIcon.value = false
+            }){
+                viewModel.deleteFiles(sftpClientService, files)
+            }
             binding.layoutBottomSelect.container.visibility = View.GONE
         }
 
@@ -846,7 +857,16 @@ class ClientSftpFragment : Fragment() {
                     } else {
                         binding.ivSelect.visibility = View.GONE
                         binding.cl.setOnClickListener {
-                            // other
+                            showCustomFileInfoDialog(requireContext(), "文件信息"){ b ->
+                                b.ivName.setImageDrawable(getIcon4File(GetProvider.get().context, item.filename))
+                                b.tvName.text = item.filename
+                                val extend = item.filename.substringAfterLast('.', "").lowercase()
+                                if (!TextUtils.isEmpty(extend)){
+                                    b.tvType.text = extend
+                                }
+                                b.tvTime.text = formatTimeWithSimpleDateFormat(item.attrs.mTime * 1000L)
+                                b.tvSize.text = item.attrs.size.toReadableFileSize()
+                            }
                         }
                         binding.cl.setOnLongClickListener {
                             viewModel.showMultiSelectIcon.value = true
