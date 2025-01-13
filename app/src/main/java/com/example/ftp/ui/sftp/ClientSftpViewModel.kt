@@ -237,7 +237,7 @@ class ClientSftpViewModel : ViewModel() {
 
     fun uploadLocalFiles(
         sftpClientService: SftpClientService?,
-        selectParentPath: String,
+        selectParentPath: String,// 选择的父路径，这个上传的时候要移除掉
         files: List<File>
     ) {
         collectLocalFiles(selectParentPath, files){

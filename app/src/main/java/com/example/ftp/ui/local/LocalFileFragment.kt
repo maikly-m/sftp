@@ -1,9 +1,15 @@
 package com.example.ftp.ui.local
 
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
+import android.os.IBinder
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
@@ -35,10 +41,15 @@ import com.example.ftp.databinding.ItemNoMoreViewBinding
 import com.example.ftp.databinding.ItemSortNameBinding
 import com.example.ftp.databinding.ItemTitleViewBinding
 import com.example.ftp.databinding.PopupWindowSortFileBinding
+import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.room.bean.FileTrack
+import com.example.ftp.service.ClientType
+import com.example.ftp.service.SftpClientService
 import com.example.ftp.ui.MainViewModel
+import com.example.ftp.ui.format
 import com.example.ftp.ui.toReadableFileSize
+import com.example.ftp.ui.toReadableFileSizeFormat1
 import com.example.ftp.ui.view.GridSpacingItemDecoration
 import com.example.ftp.ui.view.SpaceItemDecoration
 import com.example.ftp.utils.DisplayUtils
@@ -51,11 +62,18 @@ import com.example.ftp.utils.normalizeFilePath
 import com.example.ftp.utils.removeFileExtension
 import com.example.ftp.utils.saveBitmapToFile
 import com.example.ftp.utils.saveDrawableAsJPG
+import com.example.ftp.utils.showCustomAlertDialog
 import com.example.ftp.utils.showCustomFileInfoDialog
+import com.example.ftp.utils.showToast
 import com.example.ftp.utils.sortFileTracks
 import com.example.ftp.utils.videoSuffixType
+import com.jcraft.jsch.ChannelSftp
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 import timber.log.Timber
 import java.io.File
+import kotlin.math.roundToInt
 
 class LocalFileFragment : Fragment() {
 
@@ -69,12 +87,17 @@ class LocalFileFragment : Fragment() {
     // onDestroyView.
     private val binding get() = _binding!!
     private var popupWindow: PopupWindow? = null
+    private var backPressedTime: Long = 0
+    private val doubleBackToExitInterval: Long = 2000 // 2秒
+
+    private var transferAnimator: ValueAnimator? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        EventBus.getDefault().register(this)
         viewModel =
             ViewModelProvider(this).get(LocalFileViewModel::class.java)
         mainViewModel =
@@ -94,6 +117,11 @@ class LocalFileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel.changeSelectType.postValue(1)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        startFtpClient()
     }
 
     private fun initListener() {
@@ -229,7 +257,7 @@ class LocalFileFragment : Fragment() {
                         } else {
                             datum.adapter.checkList.addAll(MutableList(datum.adapter.items.size) { false })
                         }
-                    }else if (datum is FileItem.TitleData) {
+                    } else if (datum is FileItem.TitleData) {
                         datum.mutableList.clear()
                         if (it) {
                             datum.mutableList.add(1)
@@ -242,17 +270,70 @@ class LocalFileFragment : Fragment() {
             adapter.notifyDataSetChanged()
         }
         viewModel.changeSelectType.observe(viewLifecycleOwner) {
-            if (it < viewModel.sortTypes.size){
+            if (it < viewModel.sortTypes.size) {
                 //show
                 initList()
+            }
+        }
+        viewModel.uploadFileProgress.observe(viewLifecycleOwner) {
+            if (it.progress >= 0f) {
+                //show
+                binding.cvLlSimpleUpTv.text =  "${it.progress.format(0)}%"
+
+                binding.tvTransferUpCount.text = "${ it.currentCount}/${it.count}"
+                binding.tvTransferUpSize.text = "${it.currentFileSizes.toReadableFileSizeFormat1()}/${it.fileSizes.toReadableFileSizeFormat1()}"
+                binding.tvTransferUpProgress.text = binding.cvLlSimpleUpTv.text
+                binding.pbTransferUpProgress.progress = it.progress.roundToInt()
+
+            } else if (it.progress == -1f){
+                // start
+                binding.cvLlSimpleUpTv.text =  "0%"
+                binding.cvClUp.visibility = View.VISIBLE
+                binding.cvClTip.visibility = View.GONE
+                binding.pbTransferUpProgress.progress = it.progress.roundToInt()
+                binding.cvLlSimpleUp.visibility = View.VISIBLE
+                binding.cvLlSimpleTip.visibility = View.GONE
+            }else{
+
+            }
+        }
+        viewModel.uploadFileInputStream.observe(viewLifecycleOwner) {
+            if (it == 1) {
+                showToast("上传成功")
+                // 刷新列表
+            } else {
+                showToast("上传失败")
+            }
+
+            binding.cvLlSimpleUp.visibility = View.GONE
+            binding.cvLlSimpleUpTv.text = "传输"
+            binding.tvTransferUpCount.text = "0/0"
+            binding.tvTransferUpSize.text = "0/0"
+            binding.tvTransferUpProgress.text = "0%"
+            binding.cvClUp.visibility = View.GONE
+            if (binding.cvClDown.visibility == View.GONE){
+                binding.cvLlSimpleTip.visibility = View.VISIBLE
+                binding.cvClTip.visibility = View.VISIBLE
             }
         }
     }
 
     private fun initView() {
         binding.layoutTitleFile.ivBack.setOnClickListener {
-            // 模拟返回键按下
-            requireActivity().onBackPressedDispatcher.onBackPressed()
+            val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive ?: false
+            if (uploadActive) {
+                // 拦截任务
+                showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
+                    // cancel
+                }) {
+                    // ok
+                    // 关闭任务
+                    viewModel.uploadFileInputStreamJobCancel()
+                    findNavController().popBackStack()
+                }
+                return@setOnClickListener
+            }
+            findNavController().popBackStack()
         }
         binding.layoutTitleFile.ivSelect.setOnClickListener {
             // show select-all
@@ -283,62 +364,26 @@ class LocalFileFragment : Fragment() {
                 viewModel.showMultiSelectIcon.value = false
                 return@addCallback
             }
+
+            if (System.currentTimeMillis() - backPressedTime < doubleBackToExitInterval) {
+                // 防止快速点击
+                return@addCallback
+            }
+            backPressedTime = System.currentTimeMillis()
+            val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive ?: false
+            if (uploadActive) {
+                // 拦截任务
+                showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
+                    // cancel
+                }) {
+                    // ok
+                    // 关闭任务
+                    viewModel.uploadFileInputStreamJobCancel()
+                    findNavController().popBackStack()
+                }
+                return@addCallback
+            }
             findNavController().popBackStack()
-//            if (System.currentTimeMillis() - backPressedTime < doubleBackToExitInterval) {
-//                // 防止快速点击
-//                return@addCallback
-//            }
-//            backPressedTime = System.currentTimeMillis()
-//            if (TextUtils.isEmpty(viewModel.getCurrentFilePath()) || TextUtils.equals(
-//                    viewModel.getCurrentFilePath(),
-//                    "/"
-//                )
-//            ) {
-//
-//                val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive?:false
-//                val downloadActive = viewModel.getDownloadFileJob()?.isActive?:false
-//                if (uploadActive && downloadActive){
-//                    // 拦截任务
-//                    showCustomAlertDialog(requireContext(), "提示", "正在上传和下载，是否退出", {
-//                        // cancel
-//                    }){
-//                        // ok
-//                        // 关闭任务
-//                        viewModel.uploadFileInputStreamJobCancel()
-//                        viewModel.downloadFileJobCancel()
-//                        findNavController().popBackStack()
-//                    }
-//                    return@addCallback
-//                }else if (uploadActive) {
-//                    // 拦截任务
-//                    showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
-//                        // cancel
-//                    }){
-//                        // ok
-//                        // 关闭任务
-//                        viewModel.uploadFileInputStreamJobCancel()
-//                        findNavController().popBackStack()
-//                    }
-//                    return@addCallback
-//                }else if (downloadActive) {
-//                    // 拦截任务
-//                    showCustomAlertDialog(requireContext(), "提示", "正在下载，是否退出", {
-//                        // cancel
-//                    }){
-//                        // ok
-//                        // 关闭任务
-//                        viewModel.downloadFileJobCancel()
-//                        findNavController().popBackStack()
-//                    }
-//                    return@addCallback
-//                }
-//                findNavController().popBackStack()
-//            } else {
-//                val path =
-//                    viewModel.getCurrentFilePath().removeSuffix("/").substringBeforeLast("/") + "/"
-//                Timber.d("onBackPressedDispatcher path=${path}")
-//                viewModel.listFile(sftpClientService, path)
-//            }
         }
 
         binding.layoutTitleFile.llSort.setOnClickListener {
@@ -346,12 +391,68 @@ class LocalFileFragment : Fragment() {
             showSortPopupWindow(it)
             binding.layoutTitleFile.ivSort.run {
                 // 创建旋转动画，参数是旋转角度
-                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation + 180f)
+                val rotationAnimator =
+                    ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation + 180f)
                 rotationAnimator.duration = 300
                 rotationAnimator.start()
             }
         }
 
+        binding.layoutBottomSelectLocal.btnUpload.setOnClickListener {
+            //上传
+            val files = mutableListOf<File>()
+            if (adapter is ListFileAdapter) {
+                (adapter as ListFileAdapter).data.forEach { d ->
+                    if (d is FileItem.DataFileItem) {
+                        d.adapter.checkList.forEachIndexed { index, b ->
+                            if (b) {
+                                if (d.adapter.items.size > index) {
+                                    files.add(d.adapter.items[index])
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+            // 加上前缀
+            viewModel.uploadLocalFiles(sftpClientService, "/sftp/${type?.type ?: ""}", files)
+            binding.layoutBottomSelectLocal.container.visibility = View.GONE
+            viewModel.showMultiSelectIcon.value = false
+        }
+
+
+        binding.cvTransfer.setOnClickListener {
+            // todo
+            if (transferAnimator?.isRunning == true){
+                return@setOnClickListener
+            }
+
+            if (binding.cvLlSimple.visibility == View.VISIBLE) {
+                // 动画切换
+                animateWidth(binding.cvTransfer, DisplayUtils.dp2px(requireContext(), 70f),
+                    DisplayUtils.dp2px(requireContext(), 240f))
+                binding.cvLlSimple.visibility = View.GONE
+                binding.cvLlExpand.visibility = View.VISIBLE
+            } else {
+                animateWidth(binding.cvTransfer, DisplayUtils.dp2px(requireContext(), 240f),
+                    DisplayUtils.dp2px(requireContext(), 70f))
+                binding.cvLlSimple.visibility = View.VISIBLE
+                binding.cvLlExpand.visibility = View.GONE
+            }
+        }
+
+    }
+    private fun animateWidth(view: View, startWidth: Int, endWidth: Int) {
+        transferAnimator = ValueAnimator.ofInt(startWidth, endWidth)
+        transferAnimator?.duration = 300 // 动画持续时间 (毫秒)
+        transferAnimator?.addUpdateListener { animation ->
+            val animatedValue = animation.animatedValue as Int
+            val layoutParams = view.layoutParams
+            layoutParams.width = animatedValue
+            view.layoutParams = layoutParams
+        }
+        transferAnimator?.start()
     }
 
     private fun initList() {
@@ -403,17 +504,23 @@ class LocalFileFragment : Fragment() {
         popupWindow?.setOnDismissListener {
             binding.layoutTitleFile.ivSort.run {
                 // 创建旋转动画，参数是旋转角度
-                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation - 180f)
+                val rotationAnimator =
+                    ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation - 180f)
                 rotationAnimator.duration = 300
                 rotationAnimator.start()
             }
         }
         // Show the PopupWindow
-        popupWindow?.showAsDropDown(anchorView, 0, 10) // Adjust position relative to the anchor view
+        popupWindow?.showAsDropDown(
+            anchorView,
+            0,
+            10
+        ) // Adjust position relative to the anchor view
 
         // Alternatively, use showAtLocation for custom positioning
         // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
     }
+
     private fun initZips(data: MutableList<FileTrack>) {
         Timber.d("initZips start")
         val recyclerView = binding.rv
@@ -426,7 +533,7 @@ class LocalFileFragment : Fragment() {
             } else {
                 1
             }
-        }?:1
+        } ?: 1
         binding.layoutTitleFile.tvSort.text = viewModel.sortTypes[value]
         sortFileTracks(data, value + 4)
         // 切割数据，按照天算
@@ -567,6 +674,8 @@ class LocalFileFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        requireContext().unbindService(serviceConnection)
+        EventBus.getDefault().unregister(this)
     }
 
     companion object {
@@ -930,24 +1039,24 @@ class LocalFileFragment : Fragment() {
                                 )
                             )
                             .into(binding.ivIcon)
-                    } else if (type in videoSuffixType){
-                            Glide.with(requireContext())
-                                .asBitmap()
-                                .frame(0)
-                                .load(item.absolutePath)
-                                .transform(
-                                    MultiTransformation(
-                                        CenterCrop(),
-                                        RoundedCorners(DisplayUtils.dp2px(requireContext(), 2f))
-                                    )
+                    } else if (type in videoSuffixType) {
+                        Glide.with(requireContext())
+                            .asBitmap()
+                            .frame(0)
+                            .load(item.absolutePath)
+                            .transform(
+                                MultiTransformation(
+                                    CenterCrop(),
+                                    RoundedCorners(DisplayUtils.dp2px(requireContext(), 2f))
                                 )
-                                .placeholder(
-                                    getIcon4File(
-                                        GetProvider.get().context,
-                                        item.name
-                                    )
+                            )
+                            .placeholder(
+                                getIcon4File(
+                                    GetProvider.get().context,
+                                    item.name
                                 )
-                                .into(binding.ivIcon)
+                            )
+                            .into(binding.ivIcon)
                         // 视频
 //                        var path = item.absolutePath
 //                        val f = File(normalizeFilePath(mainViewModel.getSppSdcard()+removeFileExtension(item.absolutePath)+".jpg"))
@@ -1019,7 +1128,7 @@ class LocalFileFragment : Fragment() {
 //                        }
 
 
-                    }else{
+                    } else {
                         binding.ivIcon.setImageDrawable(
                             getIcon4File(
                                 GetProvider.get().context,
@@ -1090,6 +1199,7 @@ class LocalFileFragment : Fragment() {
 
         override fun getItemCount(): Int = items.size
     }
+
     inner class SortFileAdapter(val items: MutableList<String>) :
         RecyclerView.Adapter<SortFileAdapter.ViewHolder>() {
         inner class ViewHolder(private val binding: ItemSortNameBinding) :
@@ -1104,11 +1214,11 @@ class LocalFileFragment : Fragment() {
                     binding.ll.post {
                         notifyDataSetChanged()
                     }
-                    binding.ll.postDelayed({popupWindow?.dismiss()},100)
+                    binding.ll.postDelayed({ popupWindow?.dismiss() }, 100)
                 }
                 if (viewModel.changeSelectType.value == adapterPosition) {
                     binding.tvName.setTextColor(Color.BLUE)
-                }else{
+                } else {
                     binding.tvName.setTextColor(Color.BLACK)
                 }
 
@@ -1126,6 +1236,55 @@ class LocalFileFragment : Fragment() {
         }
 
         override fun getItemCount(): Int = items.size
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onMessageEvent(event: ClientMessageEvent) {
+        // 处理事件
+        when (event) {
+            is ClientMessageEvent.SftpConnected -> {
+                Timber.d("SftpConnected ..")
+            }
+
+            is ClientMessageEvent.SftpConnectFail -> {
+                if (event.clientType is ClientType.BaseClient) {
+                    showToast(event.message)
+                }
+            }
+
+            is ClientMessageEvent.SftpDisconnect -> {
+
+            }
+
+            is ClientMessageEvent.UploadFileList -> {
+            }
+        }
+    }
+
+    private fun startFtpClient() {
+        if (isBound) {
+            return
+        }
+        // 绑定服务
+        Timber.d("startFtpClient ..")
+        val intent = Intent(requireContext(), SftpClientService::class.java)
+        requireContext().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    private var sftpClientService: SftpClientService? = null
+    private var isBound: Boolean = false
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            Timber.d("serviceConnection ..")
+            val binder = service as SftpClientService.LocalBinder
+            sftpClientService = binder.getService()
+            isBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            sftpClientService = null
+            isBound = false
+        }
     }
 }
 
