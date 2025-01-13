@@ -1,21 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout  xmlns:android="http://schemas.android.com/apk/res/android">
+<layout  xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
     <data>
         <variable
             name="item"
             type="String" />
     </data>
 
-    <TextView
-        android:padding="5dp"
-        android:gravity="start|center_vertical"
-        android:id="@+id/textView"
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:background="@drawable/item_selector_title"
+        android:id="@+id/cl"
         android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:textColor="@color/color_434242"
-        android:text="2020-02-02"
-        android:textStyle="bold"
-        android:textSize="15sp"/>
+        android:layout_height="40dp">
+        <ImageView
+            android:visibility="gone"
+            android:src="@drawable/svg_unselect_icon"
+            android:id="@+id/iv_select"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="7dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+        <TextView
+            app:layout_constrainedWidth="true"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/iv_select"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:padding="5dp"
+            android:gravity="start|center_vertical"
+            android:id="@+id/textView"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:textColor="@color/color_434242"
+            android:text="2020-02-02"
+            android:textStyle="bold"
+            android:textSize="15sp"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </layout>
 

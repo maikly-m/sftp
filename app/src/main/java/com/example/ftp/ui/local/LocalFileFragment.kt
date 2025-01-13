@@ -3,15 +3,19 @@ package com.example.ftp.ui.local
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.MultiTransformation
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.example.ftp.R
 import com.example.ftp.bean.FileInfo
 import com.example.ftp.databinding.FragmentLocalFileBinding
@@ -30,12 +34,11 @@ import com.example.ftp.utils.DisplayUtils
 import com.example.ftp.utils.formatTimeWithDay
 import com.example.ftp.utils.formatTimeWithSimpleDateFormat
 import com.example.ftp.utils.getIcon4File
+import com.example.ftp.utils.imageSuffixType
 import com.example.ftp.utils.showCustomFileInfoDialog
 import com.example.ftp.utils.sortFileTracks
-import timber.log.Timber
+import com.example.ftp.utils.videoSuffixType
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.attribute.FileTime
 
 class LocalFileFragment : Fragment() {
 
@@ -61,14 +64,79 @@ class LocalFileFragment : Fragment() {
         _binding = FragmentLocalFileBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        binding.layoutTitle.ivBack.setOnClickListener {
-            findNavController().popBackStack()
-        }
         type = arguments?.getSerializable("type") as FileInfo
         binding.layoutTitle.tvName.text = type?.name ?: "文件"
 
-        initView()
+        binding.layoutTitle.ivBack.setOnClickListener {
+            // 模拟返回键按下
+            requireActivity().onBackPressedDispatcher.onBackPressed()
+        }
 
+        // 监听返回键操作
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            if (viewModel.showMultiSelectIcon.value == true) {
+                viewModel.showMultiSelectIcon.value = false
+                return@addCallback
+            }
+            findNavController().popBackStack()
+//            if (System.currentTimeMillis() - backPressedTime < doubleBackToExitInterval) {
+//                // 防止快速点击
+//                return@addCallback
+//            }
+//            backPressedTime = System.currentTimeMillis()
+//            if (TextUtils.isEmpty(viewModel.getCurrentFilePath()) || TextUtils.equals(
+//                    viewModel.getCurrentFilePath(),
+//                    "/"
+//                )
+//            ) {
+//
+//                val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive?:false
+//                val downloadActive = viewModel.getDownloadFileJob()?.isActive?:false
+//                if (uploadActive && downloadActive){
+//                    // 拦截任务
+//                    showCustomAlertDialog(requireContext(), "提示", "正在上传和下载，是否退出", {
+//                        // cancel
+//                    }){
+//                        // ok
+//                        // 关闭任务
+//                        viewModel.uploadFileInputStreamJobCancel()
+//                        viewModel.downloadFileJobCancel()
+//                        findNavController().popBackStack()
+//                    }
+//                    return@addCallback
+//                }else if (uploadActive) {
+//                    // 拦截任务
+//                    showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
+//                        // cancel
+//                    }){
+//                        // ok
+//                        // 关闭任务
+//                        viewModel.uploadFileInputStreamJobCancel()
+//                        findNavController().popBackStack()
+//                    }
+//                    return@addCallback
+//                }else if (downloadActive) {
+//                    // 拦截任务
+//                    showCustomAlertDialog(requireContext(), "提示", "正在下载，是否退出", {
+//                        // cancel
+//                    }){
+//                        // ok
+//                        // 关闭任务
+//                        viewModel.downloadFileJobCancel()
+//                        findNavController().popBackStack()
+//                    }
+//                    return@addCallback
+//                }
+//                findNavController().popBackStack()
+//            } else {
+//                val path =
+//                    viewModel.getCurrentFilePath().removeSuffix("/").substringBeforeLast("/") + "/"
+//                Timber.d("onBackPressedDispatcher path=${path}")
+//                viewModel.listFile(sftpClientService, path)
+//            }
+        }
+
+        initView()
         initListener()
 
         return root
@@ -78,38 +146,106 @@ class LocalFileFragment : Fragment() {
 
         viewModel.showMultiSelectIcon.observe(viewLifecycleOwner) {
             if (it) {
-                if (adapter is ListFileAdapter){
+                if (adapter is ListFileAdapter) {
                     (adapter as ListFileAdapter).data.forEach { d ->
-                        if (d is FileItem.DataFileItem){
+                        if (d is FileItem.DataFileItem) {
                             // clear all
                             d.adapter.checkList.clear()
                             // reset
                             d.adapter.checkList.addAll(MutableList(d.adapter.items.size) { false })
-                            d.adapter.notifyDataSetChanged()
+                        } else if (d is FileItem.TitleData) {
+                            d.mutableList.clear()
+                            d.mutableList.add(0)
                         }
                     }
-                }else if (adapter is GridFileAdapter) {
+
+                } else if (adapter is GridFileAdapter) {
                     (adapter as GridFileAdapter).data.forEach { d ->
-                        if (d is FileItem.DataFileItem){
+                        if (d is FileItem.DataFileItem) {
                             // clear all
                             d.adapter.checkList.clear()
                             // reset
                             d.adapter.checkList.addAll(MutableList(d.adapter.items.size) { false })
-                            d.adapter.notifyDataSetChanged()
+                        } else if (d is FileItem.TitleData) {
+                            d.mutableList.clear()
+                            d.mutableList.add(0)
                         }
                     }
-                }else{
+                } else {
 
                 }
             } else {
                 // hide
-
             }
+            adapter.notifyDataSetChanged()
         }
         viewModel.changeSelectCondition.observe(viewLifecycleOwner) {
-            // todo
-            if (it > 0) {
+            if (it >= 0) {
+                if (adapter is ListFileAdapter) {
+                    val data = (adapter as ListFileAdapter).data
+                    if (it < data.size) {
+                        // 选中数据类型
+                        val selected = data[it]
+                        var selectedTitle: FileItem.TitleData? = null
+                        if (it - 1 >= 0 && data[it - 1] is FileItem.TitleData) {
+                            selectedTitle = data[it - 1] as FileItem.TitleData
+                        }
+                        if (selected is FileItem.DataFileItem) {
+                            // 数据类型
+                            // 表示要标记title
+                            var checkSize = 0
+                            for (b in selected.adapter.checkList) {
+                                if (b) {
+                                    checkSize += 1
+                                }
+                            }
+                            if (checkSize == 0) {
+                                // 没有选择
+                                selectedTitle?.let { i ->
+                                    i.mutableList.clear()
+                                    i.mutableList.add(0)
+                                }
+                            } else if (checkSize == selected.adapter.checkList.size) {
+                                // 全选
+                                selectedTitle?.let { i ->
+                                    i.mutableList.clear()
+                                    i.mutableList.add(1)
+                                }
+                            } else {
+                                // 部分选择
+                                selectedTitle?.let { i ->
+                                    i.mutableList.clear()
+                                    i.mutableList.add(2)
+                                }
+                            }
+                        } else if (selected is FileItem.TitleData) {
+                            // 选中title类型
+                            val select = data[it] as FileItem.TitleData
+                            var selectedData: FileItem.DataFileItem? = null
+                            if (it + 1 < data.size && data[it + 1] is FileItem.DataFileItem) {
+                                selectedData = data[it + 1] as FileItem.DataFileItem
+                            }
+                            selectedData?.let { s ->
+                                val c = select.mutableList[0]
+                                if (c == 0) {
+                                    // 没有选择
+                                    s.adapter.checkList.clear()
+                                    s.adapter.checkList.addAll(MutableList(s.adapter.items.size) { false })
+                                } else if (c == 1) {
+                                    // 全选
+                                    s.adapter.checkList.clear()
+                                    s.adapter.checkList.addAll(MutableList(s.adapter.items.size) { true })
+                                } else {
+                                    // 选中部分，按照不选择处理
+                                    s.adapter.checkList.clear()
+                                    s.adapter.checkList.addAll(MutableList(s.adapter.items.size) { false })
+                                }
+                            }
+                        }
+                    }
 
+                }
+                adapter.notifyDataSetChanged()
             } else {
 
             }
@@ -157,16 +293,25 @@ class LocalFileFragment : Fragment() {
         map.forEach { (t, u) ->
             val files = mutableListOf<File>()
             val checkFiles = mutableListOf<Boolean>()
+            var type = ""
+            if (u.isNotEmpty()) {
+                type = u.first().type
+            }
             u.forEach { p ->
-                val f= File(p.path)
-                if (f.exists() && f.isFile){
+                val f = File(p.path)
+                if (f.exists() && f.isFile) {
                     files.add(f)
                     checkFiles.add(false)
                 }
             }
-            if (files.size > 0){
-                fileItems.add(FileItem.TitleData(t))
-                fileItems.add(FileItem.DataFileItem(u, ListFileItemAdapter(fileItems.size, files, checkFiles)))
+            if (files.size > 0) {
+                fileItems.add(FileItem.TitleData(t, fileItems.size, MutableList(1) { 0 }))
+                fileItems.add(
+                    FileItem.DataFileItem(
+                        u,
+                        ListFileItemAdapter(type, fileItems.size, files, checkFiles)
+                    )
+                )
             }
         }
 
@@ -191,47 +336,48 @@ class LocalFileFragment : Fragment() {
     }
 
     private fun initVideos(data: MutableList<FileTrack>) {
-
+        initZips(data)
 
     }
 
     private fun initImages(data: MutableList<FileTrack>) {
-        val recyclerView = binding.rv
-        // 设置 RecyclerView 的适配器
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        // 分类数据
-        sortFileTracks(data, 5)
-        // 切割数据，按照天算
-        val fileItems = mutableListOf<FileItem>()
-
-        val map = hashMapOf<String, MutableList<FileTrack>>()
-        for (d in data) {
-            val day = formatTimeWithDay(d.mTime)
-            if (map[day] == null) {
-                map[day] = mutableListOf()
-            }
-            map[day]?.add(d)
-        }
-        map.forEach { (t, u) ->
-            val files = mutableListOf<File>()
-            val checkFiles = mutableListOf<Boolean>()
-            u.forEach { p ->
-                val f= File(p.path)
-                if (f.exists() && f.isFile){
-                    files.add(f)
-                    checkFiles.add(false)
-                }
-            }
-            if (files.size > 0){
-                fileItems.add(FileItem.TitleData(t))
-                fileItems.add(FileItem.DataFileItem(u, ListFileItemAdapter(fileItems.size, files, checkFiles)))
-            }
-        }
-
-        adapter = GridFileAdapter(fileItems)
-        val spaceDecoration = SpaceItemDecoration(DisplayUtils.dp2px(requireContext(), 6f)) // 设置间距
-        recyclerView.addItemDecoration(spaceDecoration)
-        recyclerView.adapter = adapter
+        initZips(data)
+//        val recyclerView = binding.rv
+//        // 设置 RecyclerView 的适配器
+//        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+//        // 分类数据
+//        sortFileTracks(data, 5)
+//        // 切割数据，按照天算
+//        val fileItems = mutableListOf<FileItem>()
+//
+//        val map = hashMapOf<String, MutableList<FileTrack>>()
+//        for (d in data) {
+//            val day = formatTimeWithDay(d.mTime)
+//            if (map[day] == null) {
+//                map[day] = mutableListOf()
+//            }
+//            map[day]?.add(d)
+//        }
+//        map.forEach { (t, u) ->
+//            val files = mutableListOf<File>()
+//            val checkFiles = mutableListOf<Boolean>()
+//            u.forEach { p ->
+//                val f= File(p.path)
+//                if (f.exists() && f.isFile){
+//                    files.add(f)
+//                    checkFiles.add(false)
+//                }
+//            }
+//            if (files.size > 0){
+//                fileItems.add(FileItem.TitleData(t, fileItems.size, MutableList(1){0}))
+//                fileItems.add(FileItem.DataFileItem(u, ListFileItemAdapter(fileItems.size, files, checkFiles)))
+//            }
+//        }
+//
+//        adapter = GridFileAdapter(fileItems)
+//        val spaceDecoration = SpaceItemDecoration(DisplayUtils.dp2px(requireContext(), 6f)) // 设置间距
+//        recyclerView.addItemDecoration(spaceDecoration)
+//        recyclerView.adapter = adapter
 
     }
 
@@ -296,9 +442,42 @@ class LocalFileFragment : Fragment() {
 
             fun bind(item: FileItem.TitleData) {
                 binding.item = item.data
-                binding.textView.text = item.data
                 binding.executePendingBindings()
-                // Timber.d("bind adapterPosition=${adapterPosition}, layoutPosition=${layoutPosition}")
+                binding.textView.text = item.data
+                if (viewModel.showMultiSelectIcon.value == true) {
+                    binding.ivSelect.visibility = View.VISIBLE
+                    binding.cl.setOnClickListener {
+                        var c = item.mutableList[0]
+                        c = if (c == 0) {
+                            1
+                        } else {
+                            0
+                        }
+                        if (c == 1) {
+                            binding.ivSelect.setImageResource(R.drawable.svg_select_icon)
+                        } else {
+                            binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
+                        }
+                        item.mutableList[0] = c
+                        viewModel.changeSelectCondition.postValue(item.index)
+                    }
+                    binding.cl.setOnLongClickListener { true }
+                } else {
+                    binding.cl.setOnLongClickListener {
+                        viewModel.showMultiSelectIcon.value = true
+                        item.mutableList[0] = 1
+                        viewModel.changeSelectCondition.value = item.index
+                        true
+                    }
+                    binding.ivSelect.visibility = View.GONE
+                }
+                if (item.mutableList[0] == 1) {
+                    binding.ivSelect.setImageResource(R.drawable.svg_select_icon)
+                } else if (item.mutableList[0] == 0) {
+                    binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
+                } else {
+                    binding.ivSelect.setImageResource(R.drawable.svg_select_part)
+                }
             }
         }
 
@@ -526,6 +705,7 @@ class LocalFileFragment : Fragment() {
     }
 
     inner class ListFileItemAdapter(
+        val type: String,
         val index: Int,
         val items: MutableList<File>,
         val checkList: MutableList<Boolean>
@@ -546,14 +726,54 @@ class LocalFileFragment : Fragment() {
                 } else {
                     if (item.isFile) {
                         // 加上文件大小
-                        binding.tvTime.text = binding.tvTime.text.toString() + "   ${item.length().toReadableFileSize()}"
+                        binding.tvTime.text = binding.tvTime.text.toString() + "   ${
+                            item.length().toReadableFileSize()
+                        }"
                     }
-                    binding.ivIcon.setImageDrawable(
-                        getIcon4File(
-                            GetProvider.get().context,
-                            item.name
+                    if (type in imageSuffixType) {
+                        // 图片
+                        Glide.with(requireContext())
+                            .load(item.absolutePath)
+                            .transform(
+                                MultiTransformation(
+                                    CenterCrop(),
+                                    RoundedCorners(DisplayUtils.dp2px(requireContext(), 2f))
+                                )
+                            )
+                            .placeholder(
+                                getIcon4File(
+                                    GetProvider.get().context,
+                                    item.name
+                                )
+                            )
+                            .into(binding.ivIcon)
+                    } else if (type in videoSuffixType){
+                        // 视频
+                        Glide.with(requireContext())
+                            .asBitmap()
+                            .frame(0)
+                            .load(item.absolutePath)
+                            .transform(
+                                MultiTransformation(
+                                    CenterCrop(),
+                                    RoundedCorners(DisplayUtils.dp2px(requireContext(), 2f))
+                                )
+                            )
+                            .placeholder(
+                                getIcon4File(
+                                    GetProvider.get().context,
+                                    item.name
+                                )
+                            )
+                            .into(binding.ivIcon)
+                    }else{
+                        binding.ivIcon.setImageDrawable(
+                            getIcon4File(
+                                GetProvider.get().context,
+                                item.name
+                            )
                         )
-                    )
+                    }
                     if (viewModel.showMultiSelectIcon.value == true) {
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
@@ -565,15 +785,21 @@ class LocalFileFragment : Fragment() {
                             }
                             viewModel.changeSelectCondition.postValue(index)
                         }
+                        binding.cl.setOnLongClickListener { true }
                     } else {
                         binding.ivSelect.visibility = View.GONE
                         binding.cl.setOnClickListener {
                             // other
-                            showCustomFileInfoDialog(requireContext(), "文件信息"){ b ->
-                                b.ivName.setImageDrawable(getIcon4File(GetProvider.get().context, item.name))
+                            showCustomFileInfoDialog(requireContext(), "文件信息") { b ->
+                                b.ivName.setImageDrawable(
+                                    getIcon4File(
+                                        GetProvider.get().context,
+                                        item.name
+                                    )
+                                )
                                 b.tvName.text = item.name
                                 val extend = item.name.substringAfterLast('.', "").lowercase()
-                                if (!TextUtils.isEmpty(extend)){
+                                if (!TextUtils.isEmpty(extend)) {
                                     b.tvType.text = extend
                                 }
                                 b.tvTime.text = formatTimeWithSimpleDateFormat(item.lastModified())
@@ -582,6 +808,8 @@ class LocalFileFragment : Fragment() {
                         }
                         binding.cl.setOnLongClickListener {
                             viewModel.showMultiSelectIcon.value = true
+                            checkList[adapterPosition] = true
+                            viewModel.changeSelectCondition.value = index
                             true
                         }
                     }
@@ -613,7 +841,12 @@ class LocalFileFragment : Fragment() {
 
 
 sealed class FileItem {
-    data class DataFileItem(val fileInfo: List<FileTrack>, val adapter: LocalFileFragment.ListFileItemAdapter) : FileItem()
+    data class DataFileItem(
+        val fileInfo: List<FileTrack>,
+        val adapter: LocalFileFragment.ListFileItemAdapter
+    ) : FileItem()
+
     data object NoMoreData : FileItem()  // 无数据项
-    data class TitleData(val data: String) : FileItem()  // 无数据项
+    data class TitleData(val data: String, val index: Int, val mutableList: MutableList<Int>) :
+        FileItem()  // 无数据项
 }
