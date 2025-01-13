@@ -261,7 +261,7 @@ class SftpClientModel(val type: ClientType) {
                             }
                             if (entry.attrs.isDir) {
                                 // 递归删除子目录
-                                deleteFile(filePath)
+                                deleteDir(filePath)
                             } else {
                                 // 删除文件
                                 channelSftp?.rm(filePath)

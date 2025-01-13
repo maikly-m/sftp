@@ -127,6 +127,34 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
         </LinearLayout>
+        <LinearLayout
+            android:id="@+id/ll_open"
+            android:visibility="gone"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="6dp"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <com.google.android.material.button.MaterialButton
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="10dp"
+                app:layout_constraintEnd_toStartOf="@+id/btn_ok"
+                app:layout_constraintTop_toBottomOf="@+id/tv_msg"
+                android:backgroundTint="@color/color_FFF5F5F5"
+                app:cornerRadius="20dp"
+                app:strokeWidth="2dp"
+                app:strokeColor="@color/color_FFF5F5F5"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:id="@+id/btn_open"
+                android:text="打开文件"
+                android:paddingHorizontal="5dp"
+                android:textStyle="bold"
+                android:textColor="@color/color_1296db"
+                android:textSize="14sp"
+                android:layout_width="wrap_content"
+                android:layout_height="45dp" />
+        </LinearLayout>
         <View
             android:layout_width="match_parent"
             android:layout_height="15dp"/>

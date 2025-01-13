@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo.WindowLayout
 import android.content.pm.PackageManager
 import android.database.Cursor
@@ -35,9 +36,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
+import android.webkit.MimeTypeMap
 import android.widget.EditText
 import android.widget.Toast
 import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.core.content.FileProvider
 import androidx.fragment.app.FragmentActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.MultiTransformation
@@ -676,7 +679,7 @@ fun isIPAddress(address: String): Boolean {
     return ipv4Regex.matches(address) || ipv6Regex.matches(address)
 }
 
-fun showCustomFileInfoDialog(context: Context, title: String, block: (binding: DialogCustomFileInfoBinding) -> Unit) {
+fun showCustomFileInfoDialog(context: Context, title: String, block: (binding: DialogCustomFileInfoBinding) -> Unit): AlertDialog? {
     // 加载自定义布局
     val binding = DialogCustomFileInfoBinding.inflate(LayoutInflater.from(context), null, false)
     val dialogView = binding.root
@@ -702,6 +705,7 @@ fun showCustomFileInfoDialog(context: Context, title: String, block: (binding: D
     alertDialog.window?.setDimAmount(0.4f) // 背景模糊透明度
     // 设置对话框背景为圆角 drawable
     alertDialog.window?.setBackgroundDrawableResource(R.drawable.rounded_white_background_16)
+    return alertDialog
 }
 
 
@@ -1193,4 +1197,38 @@ fun saveVideoThumbnailWithOriginalSize(context: Context, videoPath: String, outp
         e.printStackTrace()
     }
     return null
+}
+
+fun openFileWithSystemApp(context: Context, file: File) {
+    val appId = context.packageName
+    val authority = "${appId}.fileprovider"
+    try {
+        // 判断文件是否存在
+        if (!file.exists()) {
+            showToast("文件不存在")
+            return
+        }
+
+        // 获取文件后缀名
+        val extension = file.extension
+        // 推断 MIME 类型
+        val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+            ?: "*/*" // 如果无法识别后缀，使用通配符
+
+        // 获取文件的 Uri
+        val uri: Uri = FileProvider.getUriForFile(context, authority, file)
+
+        // 创建 Intent
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mimeType)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // 授予临时读取权限
+        }
+
+        // 启动系统应用
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        showToast("打开失败")
+    }
 }

@@ -44,6 +44,7 @@ class ClientSftpViewModel : ViewModel() {
     private var lastCurrentPath: String = "/"
 
     val showMultiSelectIcon = SingleLiveEvent<Boolean>()
+    val changeSelectCondition = SingleLiveEvent<Int>()
     val showSelectAll = SingleLiveEvent<Boolean>()
     val changeSelectType = SingleLiveEvent<Int>()
 
@@ -646,26 +647,6 @@ class ClientSftpViewModel : ViewModel() {
             }
         }
 
-        }
-    }
-
-    private fun deleteRemoteFile(
-        sftpClientService: SftpClientService?,
-        path: String,
-    ) {
-        if (deleteFileJob != null && deleteFileJob?.isActive == true) {
-            return
-        }
-        deleteFileJob = viewModelScope.launch(Dispatchers.IO) {
-            sftpClientService?.getClient()
-                ?.deleteFile(path)
-        }
-        deleteFileJob?.invokeOnCompletion { throwable ->
-            if (throwable == null) {
-                Timber.d("deleteRemoteFile ok")
-            } else {
-                Timber.d("deleteRemoteFile throwable = ${throwable.message}")
-            }
         }
     }
 

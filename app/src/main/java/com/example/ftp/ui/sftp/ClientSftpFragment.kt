@@ -37,6 +37,7 @@ import com.example.ftp.ui.dialog.LoadingDialog
 import com.example.ftp.ui.dialog.PickFilesDialog
 import com.example.ftp.ui.dialog.ProgressDialog
 import com.example.ftp.ui.format
+import com.example.ftp.ui.local.FileItem
 import com.example.ftp.ui.toReadableFileSize
 import com.example.ftp.ui.toReadableFileSizeFormat1
 import com.example.ftp.utils.DisplayUtils
@@ -135,11 +136,19 @@ class ClientSftpFragment : Fragment() {
         binding.layoutTitleFile.ivSelect.setOnClickListener {
             // show select-all
             viewModel.showMultiSelectIcon.value = true
+            viewModel.showSelectAll.value = false
+            binding.layoutTitleFile.tvSelectAll.text = "全选"
         }
 
         binding.layoutTitleFile.tvSelectAll.setOnClickListener {
             //select-all
-            viewModel.showSelectAll.value = true
+            if (viewModel.showSelectAll.value == false) {
+                viewModel.showSelectAll.value = true
+                binding.layoutTitleFile.tvSelectAll.text = "取消全选"
+            } else {
+                viewModel.showSelectAll.value = false
+                binding.layoutTitleFile.tvSelectAll.text = "全选"
+            }
         }
 
         binding.layoutTitleFile.tvCancel.setOnClickListener {
@@ -420,6 +429,15 @@ class ClientSftpFragment : Fragment() {
             }
 
             listFileAdapter?.notifyDataSetChanged()
+        }
+
+        viewModel.changeSelectCondition.observe(viewLifecycleOwner) {
+            if (it >= 0 && listFileAdapter.checkList.size > it) {
+                listFileAdapter.checkList[it] = true
+                listFileAdapter?.notifyDataSetChanged()
+            } else {
+
+            }
         }
 
 
@@ -826,6 +844,7 @@ class ClientSftpFragment : Fragment() {
                                 binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                             }
                         }
+                        binding.cl.setOnLongClickListener {true}
                     } else {
                         binding.ivSelect.visibility = View.GONE
                         binding.cl.setOnClickListener {
@@ -834,7 +853,9 @@ class ClientSftpFragment : Fragment() {
                             viewModel.listFile(sftpClientService, fullPath)
                         }
                         binding.cl.setOnLongClickListener {
+                            val p = adapterPosition
                             viewModel.showMultiSelectIcon.value = true
+                            viewModel.changeSelectCondition.postValue(p)
                             true
                         }
                     }
@@ -854,6 +875,7 @@ class ClientSftpFragment : Fragment() {
                                 binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                             }
                         }
+                        binding.cl.setOnLongClickListener {true}
                     } else {
                         binding.ivSelect.visibility = View.GONE
                         binding.cl.setOnClickListener {
@@ -869,7 +891,9 @@ class ClientSftpFragment : Fragment() {
                             }
                         }
                         binding.cl.setOnLongClickListener {
+                            val p = adapterPosition
                             viewModel.showMultiSelectIcon.value = true
+                            viewModel.changeSelectCondition.postValue(p)
                             true
                         }
                     }

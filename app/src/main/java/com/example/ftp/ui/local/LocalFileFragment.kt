@@ -2,6 +2,8 @@ package com.example.ftp.ui.local
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import android.app.AlertDialog
+import android.content.ClipData.Item
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -59,6 +61,7 @@ import com.example.ftp.utils.formatTimeWithSimpleDateFormat
 import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.imageSuffixType
 import com.example.ftp.utils.normalizeFilePath
+import com.example.ftp.utils.openFileWithSystemApp
 import com.example.ftp.utils.removeFileExtension
 import com.example.ftp.utils.saveBitmapToFile
 import com.example.ftp.utils.saveDrawableAsJPG
@@ -1150,9 +1153,10 @@ class LocalFileFragment : Fragment() {
                         binding.cl.setOnLongClickListener { true }
                     } else {
                         binding.ivSelect.visibility = View.GONE
+                        var d:AlertDialog? = null
                         binding.cl.setOnClickListener {
                             // other
-                            showCustomFileInfoDialog(requireContext(), "文件信息") { b ->
+                            d = showCustomFileInfoDialog(requireContext(), "文件信息") { b ->
                                 b.ivName.setImageDrawable(
                                     getIcon4File(
                                         GetProvider.get().context,
@@ -1166,6 +1170,12 @@ class LocalFileFragment : Fragment() {
                                 }
                                 b.tvTime.text = formatTimeWithSimpleDateFormat(item.lastModified())
                                 b.tvSize.text = item.length().toReadableFileSize()
+
+                                b.llOpen.visibility = View.VISIBLE
+                                b.btnOpen.setOnClickListener {
+                                    openFileWithSystemApp(GetProvider.get().context, item.absoluteFile)
+                                    d?.dismiss()
+                                }
                             }
                         }
                         binding.cl.setOnLongClickListener {
