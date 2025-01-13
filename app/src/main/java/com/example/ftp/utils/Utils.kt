@@ -17,6 +17,7 @@ import android.graphics.Point
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.InsetDrawable
+import android.media.MediaMetadataRetriever
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.net.wifi.WifiInfo
@@ -36,7 +37,14 @@ import android.view.Window
 import android.view.WindowManager
 import android.widget.EditText
 import android.widget.Toast
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.fragment.app.FragmentActivity
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.MultiTransformation
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.bumptech.glide.request.FutureTarget
+import com.bumptech.glide.request.RequestOptions
 import com.example.ftp.R
 import com.example.ftp.databinding.DialogCustomAlertBinding
 import com.example.ftp.databinding.DialogCustomFileInfoBinding
@@ -1039,3 +1047,150 @@ fun sortFiles(d: MutableList<File>, value: Int?) {
     }
 }
 
+fun createFileWithPath(filePath: String): File? {
+    try {
+        val file = File(filePath)
+
+        if (file.parentFile == null){
+            return null
+        }
+        // 确保父目录存在
+        if (!file.parentFile!!.exists()) {
+            file.parentFile!!.mkdirs()
+        }
+
+        // 创建文件
+        if (!file.exists()) {
+            file.createNewFile()
+        }
+
+        return file
+    } catch (e: IOException) {
+        e.printStackTrace()
+    }
+    return null
+}
+
+fun removeFileExtension(filePath: String): String {
+    val file = File(filePath)
+    val fileName = file.name
+    val lastDotIndex = fileName.lastIndexOf('.')
+
+    return if (lastDotIndex != -1) {
+        file.absolutePath.substring(0, file.absolutePath.lastIndexOf('.'))
+    } else {
+        file.absolutePath // 如果没有后缀名，则返回完整路径
+    }
+}
+
+fun saveDrawableAsJPG(drawable: Drawable, outputFile: File) {
+    try {
+        // 创建一个 Bitmap 对象，并且其大小与 Drawable 的宽高一致
+        val width = drawable.intrinsicWidth
+        val height = drawable.intrinsicHeight
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+
+        // 创建一个 Canvas，将 Drawable 绘制到 Bitmap 上
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        // 保存 Bitmap 到文件（JPG 格式）
+        FileOutputStream(outputFile).use { outputStream ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream) // 设置压缩质量
+        }
+
+    } catch (e: IOException) {
+        e.printStackTrace()
+    }
+}
+
+fun saveBitmapToFile(bitmap: Bitmap, outputFile: File) {
+    try {
+        // 创建 FileOutputStream
+        FileOutputStream(outputFile).use { outputStream ->
+            // 压缩 Bitmap 为 JPEG 格式，质量设置为 90（0 到 100）
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+        }
+    } catch (e: IOException) {
+        e.printStackTrace()
+    }
+}
+
+fun saveVideoThumbnail(context: Context, videoPath: String, outputFileName: String): File? {
+    try {
+        // 使用 Glide 提取视频的缩略图
+        val requestOptions = RequestOptions().override(200, 200) // 设置缩略图大小
+        val futureTarget: FutureTarget<Bitmap> = Glide.with(context)
+            .asBitmap()
+            .load(videoPath)
+            .apply(requestOptions)
+            .transform(
+                MultiTransformation(
+                    CenterCrop(),
+                    RoundedCorners(DisplayUtils.dp2px(context, 2f))
+                )
+            )
+            .frame(0) // 提取第 0 毫秒的帧
+            .submit()
+
+        // 获取 Bitmap
+        val bitmap = futureTarget.get()
+
+        val outputFile = createFileWithPath(outputFileName)
+
+        // 将 Bitmap 保存到文件
+        val outputStream = FileOutputStream(outputFile)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream) // 压缩并保存
+        outputStream.flush()
+        outputStream.close()
+
+        // 释放资源
+        Glide.with(context).clear(futureTarget)
+
+        return outputFile
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return null
+}
+fun saveVideoThumbnailWithOriginalSize(context: Context, videoPath: String, outputFileName: String): File? {
+    try {
+        // 使用 MediaMetadataRetriever 获取视频的宽高
+        val retriever = MediaMetadataRetriever()
+        retriever.setDataSource(videoPath)
+        val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toInt() ?: 0
+        val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toInt() ?: 0
+        retriever.release()
+
+        if (width == 0 || height == 0){
+            return null
+        }
+        val scale = height.toFloat() / width
+        // 使用 Glide 提取视频的第一帧
+        val futureTarget: FutureTarget<Bitmap> = Glide.with(context)
+            .asBitmap()
+            .load(videoPath)
+            .apply(RequestOptions().override(200, (200*scale).toInt())) // 设置与视频尺寸一致的宽高
+            .frame(0) // 提取第 0 毫秒的帧
+            .submit()
+
+        // 获取 Bitmap
+        val bitmap = futureTarget.get()
+
+        val outputFile = createFileWithPath(outputFileName) ?: return null
+
+        // 将 Bitmap 保存到文件
+        val outputStream = FileOutputStream(outputFile)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream) // 压缩并保存
+        outputStream.flush()
+        outputStream.close()
+
+        // 释放资源
+        Glide.with(context).clear(futureTarget)
+
+        return outputFile
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return null
+}

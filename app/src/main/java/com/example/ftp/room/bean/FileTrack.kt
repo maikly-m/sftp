@@ -11,4 +11,5 @@ data class FileTrack(
     val size: Long,
     val mTime: Long,
     var path: String,
+    var thumbnailPath: String = "",
 )

@@ -87,6 +87,8 @@ class ClientBrowserFragment : Fragment() {
             if (it==1) {
                 // 更新数据
                 nameFileAdapter.notifyDataSetChanged()
+                // 更新缩略图
+                mainViewModel.updateThumbs()
             } else {
 
             }

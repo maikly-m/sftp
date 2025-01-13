@@ -322,7 +322,6 @@
         app:rippleColor="@color/color_EEF0F4"
         app:srcCompat="@drawable/icon_add" />
 
-    <!-- 悬浮按钮 -->
     <include
         android:id="@+id/layout_title_browser"
         layout="@layout/layout_title_browser"

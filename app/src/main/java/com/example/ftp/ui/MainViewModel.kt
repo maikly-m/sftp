@@ -3,6 +3,7 @@ package com.example.ftp.ui
 import android.os.Environment
 import android.os.FileObserver.CREATE
 import android.os.FileObserver.DELETE
+import android.text.TextUtils
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,12 +16,16 @@ import com.example.ftp.room.bean.FileTrack
 import com.example.ftp.room.bean.FileTrackDao
 import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.apkSuffixType
+import com.example.ftp.utils.delFile
 import com.example.ftp.utils.docSuffixType
 import com.example.ftp.utils.imageSuffixType
 import com.example.ftp.utils.musicSuffixType
 import com.example.ftp.utils.normalizeFilePath
 import com.example.ftp.utils.pdfSuffixType
 import com.example.ftp.utils.pptSuffixType
+import com.example.ftp.utils.removeFileExtension
+import com.example.ftp.utils.saveVideoThumbnail
+import com.example.ftp.utils.saveVideoThumbnailWithOriginalSize
 import com.example.ftp.utils.textSuffixType
 import com.example.ftp.utils.thread.SingleLiveEvent
 import com.example.ftp.utils.videoSuffixType
@@ -37,6 +42,8 @@ import java.io.File
 @OptIn(FlowPreview::class)
 class MainViewModel : ViewModel() {
 
+    private var appSdcard: String = ""
+    fun getSppSdcard() = appSdcard
     private lateinit var fileObserver: RecursiveFileObserver
     private var images: MutableList<FileTrack> = mutableListOf()
     private var videos: MutableList<FileTrack> = mutableListOf()
@@ -77,6 +84,7 @@ class MainViewModel : ViewModel() {
     private var getAllFileJob: Job? = null
     private val _getAllFile = SingleLiveEvent<Int>()
     val getAllFile: LiveData<Int> = _getAllFile
+    val thumbPaths = mutableListOf<Pair<String, String>>()
 
     init {
         resetFileObserver()
@@ -102,7 +110,7 @@ class MainViewModel : ViewModel() {
             addAll(pptSuffixType)
             addAll(pdfSuffixType)
         }
-
+        appSdcard = "${GetProvider.get().context.filesDir}/sdcard/"
     }
 
     override fun onCleared() {
@@ -203,12 +211,23 @@ class MainViewModel : ViewModel() {
 
         paths = newFilePaths.map { it.path }.toSet()
         val filesToRemove = daoFilePaths.filterNot { it.path in paths }
+        thumbPaths.clear()
         filesToAdd.forEach {
             fileTrackDao.insert(it)
+            // 视频需要添加缩略图
+            if (!TextUtils.isEmpty(it.thumbnailPath)){
+                // 多线程处理
+                thumbPaths.add(Pair(it.path, it.thumbnailPath))
+            }
         }
         filesToRemove.forEach {
             fileTrackDao.delete(it)
+            // 视频需要移除缩略图
+            if (!TextUtils.isEmpty(it.thumbnailPath)){
+                delFile(it.thumbnailPath)
+            }
         }
+        // 后面处理paths
     }
 
     private fun scanFiles(
@@ -228,15 +247,28 @@ class MainViewModel : ViewModel() {
                 fileList.addAll(scanFiles(file, fileTypes)) // 递归子目录
             } else {
                 if (fileTypes == null || file.extension.lowercase() in fileTypes) {
-                    fileList.add(
-                        FileTrack(
-                            type = file.extension.lowercase(),
-                            path = file.absolutePath,
-                            name = file.name,
-                            size = file.length(),
-                            mTime = file.lastModified()
+                    if (file.extension.lowercase() in videoSuffixType) {
+                        fileList.add(
+                            FileTrack(
+                                type = file.extension.lowercase(),
+                                path = file.absolutePath,
+                                name = file.name,
+                                size = file.length(),
+                                mTime = file.lastModified(),
+                                thumbnailPath = normalizeFilePath(appSdcard+removeFileExtension(file.absolutePath)+".jpg")
+                            )
                         )
-                    )
+                    } else {
+                        fileList.add(
+                            FileTrack(
+                                type = file.extension.lowercase(),
+                                path = file.absolutePath,
+                                name = file.name,
+                                size = file.length(),
+                                mTime = file.lastModified()
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -320,6 +352,18 @@ class MainViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    fun updateThumbs() {
+
+//        thumbPaths.forEach { p ->
+//            viewModelScope.launch(Dispatchers.IO) {
+//                Timber.d("thumbPaths start ${p.first}, thread=${coroutineContext}")
+//                saveVideoThumbnail(GetProvider.get().context, p.first, p.second)
+//                Timber.d("thumbPaths end ${p.first}")
+//            }
+//        }
+
     }
 
 }

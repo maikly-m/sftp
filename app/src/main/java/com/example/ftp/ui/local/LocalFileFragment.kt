@@ -1,10 +1,15 @@
 package com.example.ftp.ui.local
 
+import android.animation.ObjectAnimator
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.PopupWindow
 import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -13,9 +18,13 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.MultiTransformation
+import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.example.ftp.R
 import com.example.ftp.bean.FileInfo
 import com.example.ftp.databinding.FragmentLocalFileBinding
@@ -23,7 +32,9 @@ import com.example.ftp.databinding.ItemFileGridItemViewBinding
 import com.example.ftp.databinding.ItemFileGridViewBinding
 import com.example.ftp.databinding.ItemListFileBinding
 import com.example.ftp.databinding.ItemNoMoreViewBinding
+import com.example.ftp.databinding.ItemSortNameBinding
 import com.example.ftp.databinding.ItemTitleViewBinding
+import com.example.ftp.databinding.PopupWindowSortFileBinding
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.room.bean.FileTrack
 import com.example.ftp.ui.MainViewModel
@@ -31,13 +42,19 @@ import com.example.ftp.ui.toReadableFileSize
 import com.example.ftp.ui.view.GridSpacingItemDecoration
 import com.example.ftp.ui.view.SpaceItemDecoration
 import com.example.ftp.utils.DisplayUtils
+import com.example.ftp.utils.createFileWithPath
 import com.example.ftp.utils.formatTimeWithDay
 import com.example.ftp.utils.formatTimeWithSimpleDateFormat
 import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.imageSuffixType
+import com.example.ftp.utils.normalizeFilePath
+import com.example.ftp.utils.removeFileExtension
+import com.example.ftp.utils.saveBitmapToFile
+import com.example.ftp.utils.saveDrawableAsJPG
 import com.example.ftp.utils.showCustomFileInfoDialog
 import com.example.ftp.utils.sortFileTracks
 import com.example.ftp.utils.videoSuffixType
+import timber.log.Timber
 import java.io.File
 
 class LocalFileFragment : Fragment() {
@@ -51,6 +68,7 @@ class LocalFileFragment : Fragment() {
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
+    private var popupWindow: PopupWindow? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -65,76 +83,7 @@ class LocalFileFragment : Fragment() {
         val root: View = binding.root
 
         type = arguments?.getSerializable("type") as FileInfo
-        binding.layoutTitle.tvName.text = type?.name ?: "文件"
-
-        binding.layoutTitle.ivBack.setOnClickListener {
-            // 模拟返回键按下
-            requireActivity().onBackPressedDispatcher.onBackPressed()
-        }
-
-        // 监听返回键操作
-        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
-            if (viewModel.showMultiSelectIcon.value == true) {
-                viewModel.showMultiSelectIcon.value = false
-                return@addCallback
-            }
-            findNavController().popBackStack()
-//            if (System.currentTimeMillis() - backPressedTime < doubleBackToExitInterval) {
-//                // 防止快速点击
-//                return@addCallback
-//            }
-//            backPressedTime = System.currentTimeMillis()
-//            if (TextUtils.isEmpty(viewModel.getCurrentFilePath()) || TextUtils.equals(
-//                    viewModel.getCurrentFilePath(),
-//                    "/"
-//                )
-//            ) {
-//
-//                val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive?:false
-//                val downloadActive = viewModel.getDownloadFileJob()?.isActive?:false
-//                if (uploadActive && downloadActive){
-//                    // 拦截任务
-//                    showCustomAlertDialog(requireContext(), "提示", "正在上传和下载，是否退出", {
-//                        // cancel
-//                    }){
-//                        // ok
-//                        // 关闭任务
-//                        viewModel.uploadFileInputStreamJobCancel()
-//                        viewModel.downloadFileJobCancel()
-//                        findNavController().popBackStack()
-//                    }
-//                    return@addCallback
-//                }else if (uploadActive) {
-//                    // 拦截任务
-//                    showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
-//                        // cancel
-//                    }){
-//                        // ok
-//                        // 关闭任务
-//                        viewModel.uploadFileInputStreamJobCancel()
-//                        findNavController().popBackStack()
-//                    }
-//                    return@addCallback
-//                }else if (downloadActive) {
-//                    // 拦截任务
-//                    showCustomAlertDialog(requireContext(), "提示", "正在下载，是否退出", {
-//                        // cancel
-//                    }){
-//                        // ok
-//                        // 关闭任务
-//                        viewModel.downloadFileJobCancel()
-//                        findNavController().popBackStack()
-//                    }
-//                    return@addCallback
-//                }
-//                findNavController().popBackStack()
-//            } else {
-//                val path =
-//                    viewModel.getCurrentFilePath().removeSuffix("/").substringBeforeLast("/") + "/"
-//                Timber.d("onBackPressedDispatcher path=${path}")
-//                viewModel.listFile(sftpClientService, path)
-//            }
-        }
+        binding.layoutTitleFile.tvName.text = type?.name ?: "文件"
 
         initView()
         initListener()
@@ -142,9 +91,27 @@ class LocalFileFragment : Fragment() {
         return root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        viewModel.changeSelectType.postValue(1)
+    }
+
     private fun initListener() {
 
         viewModel.showMultiSelectIcon.observe(viewLifecycleOwner) {
+
+            if (it) {
+                binding.layoutTitleFile.llRegular.visibility = View.GONE
+                binding.layoutTitleFile.llSelect.visibility = View.VISIBLE
+
+                binding.layoutBottomSelectLocal.container.visibility = View.VISIBLE
+            } else {
+                binding.layoutTitleFile.llRegular.visibility = View.VISIBLE
+                binding.layoutTitleFile.llSelect.visibility = View.GONE
+
+                binding.layoutBottomSelectLocal.container.visibility = View.GONE
+            }
+
             if (it) {
                 if (adapter is ListFileAdapter) {
                     (adapter as ListFileAdapter).data.forEach { d ->
@@ -250,9 +217,144 @@ class LocalFileFragment : Fragment() {
 
             }
         }
+
+        viewModel.showSelectAll.observe(viewLifecycleOwner) {
+            if (adapter is ListFileAdapter) {
+                val data = (adapter as ListFileAdapter).data
+                for (datum in data) {
+                    if (datum is FileItem.DataFileItem) {
+                        datum.adapter.checkList.clear()
+                        if (it) {
+                            datum.adapter.checkList.addAll(MutableList(datum.adapter.items.size) { true })
+                        } else {
+                            datum.adapter.checkList.addAll(MutableList(datum.adapter.items.size) { false })
+                        }
+                    }else if (datum is FileItem.TitleData) {
+                        datum.mutableList.clear()
+                        if (it) {
+                            datum.mutableList.add(1)
+                        } else {
+                            datum.mutableList.add(0)
+                        }
+                    }
+                }
+            }
+            adapter.notifyDataSetChanged()
+        }
+        viewModel.changeSelectType.observe(viewLifecycleOwner) {
+            if (it < viewModel.sortTypes.size){
+                //show
+                initList()
+            }
+        }
     }
 
     private fun initView() {
+        binding.layoutTitleFile.ivBack.setOnClickListener {
+            // 模拟返回键按下
+            requireActivity().onBackPressedDispatcher.onBackPressed()
+        }
+        binding.layoutTitleFile.ivSelect.setOnClickListener {
+            // show select-all
+            viewModel.showMultiSelectIcon.value = true
+            viewModel.showSelectAll.value = false
+            binding.layoutTitleFile.tvSelectAll.text = "全选"
+        }
+
+        binding.layoutTitleFile.tvSelectAll.setOnClickListener {
+            //select-all
+            if (viewModel.showSelectAll.value == false) {
+                viewModel.showSelectAll.value = true
+                binding.layoutTitleFile.tvSelectAll.text = "取消全选"
+            } else {
+                viewModel.showSelectAll.value = false
+                binding.layoutTitleFile.tvSelectAll.text = "全选"
+            }
+        }
+
+        binding.layoutTitleFile.tvCancel.setOnClickListener {
+            //select cancel
+            viewModel.showMultiSelectIcon.value = false
+        }
+
+        // 监听返回键操作
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            if (viewModel.showMultiSelectIcon.value == true) {
+                viewModel.showMultiSelectIcon.value = false
+                return@addCallback
+            }
+            findNavController().popBackStack()
+//            if (System.currentTimeMillis() - backPressedTime < doubleBackToExitInterval) {
+//                // 防止快速点击
+//                return@addCallback
+//            }
+//            backPressedTime = System.currentTimeMillis()
+//            if (TextUtils.isEmpty(viewModel.getCurrentFilePath()) || TextUtils.equals(
+//                    viewModel.getCurrentFilePath(),
+//                    "/"
+//                )
+//            ) {
+//
+//                val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive?:false
+//                val downloadActive = viewModel.getDownloadFileJob()?.isActive?:false
+//                if (uploadActive && downloadActive){
+//                    // 拦截任务
+//                    showCustomAlertDialog(requireContext(), "提示", "正在上传和下载，是否退出", {
+//                        // cancel
+//                    }){
+//                        // ok
+//                        // 关闭任务
+//                        viewModel.uploadFileInputStreamJobCancel()
+//                        viewModel.downloadFileJobCancel()
+//                        findNavController().popBackStack()
+//                    }
+//                    return@addCallback
+//                }else if (uploadActive) {
+//                    // 拦截任务
+//                    showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
+//                        // cancel
+//                    }){
+//                        // ok
+//                        // 关闭任务
+//                        viewModel.uploadFileInputStreamJobCancel()
+//                        findNavController().popBackStack()
+//                    }
+//                    return@addCallback
+//                }else if (downloadActive) {
+//                    // 拦截任务
+//                    showCustomAlertDialog(requireContext(), "提示", "正在下载，是否退出", {
+//                        // cancel
+//                    }){
+//                        // ok
+//                        // 关闭任务
+//                        viewModel.downloadFileJobCancel()
+//                        findNavController().popBackStack()
+//                    }
+//                    return@addCallback
+//                }
+//                findNavController().popBackStack()
+//            } else {
+//                val path =
+//                    viewModel.getCurrentFilePath().removeSuffix("/").substringBeforeLast("/") + "/"
+//                Timber.d("onBackPressedDispatcher path=${path}")
+//                viewModel.listFile(sftpClientService, path)
+//            }
+        }
+
+        binding.layoutTitleFile.llSort.setOnClickListener {
+            // show sort
+            showSortPopupWindow(it)
+            binding.layoutTitleFile.ivSort.run {
+                // 创建旋转动画，参数是旋转角度
+                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation + 180f)
+                rotationAnimator.duration = 300
+                rotationAnimator.start()
+            }
+        }
+
+    }
+
+    private fun initList() {
         type?.let {
             mainViewModel.fileMap[it.type]?.let { data ->
                 if (data.size == 0) {
@@ -270,15 +372,63 @@ class LocalFileFragment : Fragment() {
                 }
             }
         }
-
     }
 
+    private fun showSortPopupWindow(anchorView: View) {
+        // Inflate the popup_layout.xml
+        val inflater = LayoutInflater.from(requireContext())
+        val popupView = PopupWindowSortFileBinding.inflate(inflater, null, false)
+
+        // Initialize the PopupWindow
+        popupWindow = PopupWindow(
+            popupView.root,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true // Focusable
+        )
+
+        // Set PopupWindow background (required for dismissing on outside touch)
+        popupWindow?.setBackgroundDrawable(resources.getDrawable(R.drawable.bg_popup_window))
+        popupWindow?.isOutsideTouchable = true
+
+
+        val recyclerView = popupView.rv
+        // 设置 RecyclerView 的适配器
+        recyclerView.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
+
+        val adapter = SortFileAdapter(viewModel.sortTypes)
+        recyclerView.adapter = adapter
+
+        popupWindow?.setOnDismissListener {
+            binding.layoutTitleFile.ivSort.run {
+                // 创建旋转动画，参数是旋转角度
+                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation - 180f)
+                rotationAnimator.duration = 300
+                rotationAnimator.start()
+            }
+        }
+        // Show the PopupWindow
+        popupWindow?.showAsDropDown(anchorView, 0, 10) // Adjust position relative to the anchor view
+
+        // Alternatively, use showAtLocation for custom positioning
+        // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
+    }
     private fun initZips(data: MutableList<FileTrack>) {
+        Timber.d("initZips start")
         val recyclerView = binding.rv
         // 设置 RecyclerView 的适配器
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         // 分类数据
-        sortFileTracks(data, 5)
+        val value = viewModel.changeSelectType.value?.run {
+            if (this == 0) {
+                0
+            } else {
+                1
+            }
+        }?:1
+        binding.layoutTitleFile.tvSort.text = viewModel.sortTypes[value]
+        sortFileTracks(data, value + 4)
         // 切割数据，按照天算
         val fileItems = mutableListOf<FileItem>()
 
@@ -289,6 +439,39 @@ class LocalFileFragment : Fragment() {
                 map[day] = mutableListOf()
             }
             map[day]?.add(d)
+        }
+        // 对键排序
+        val sortedKeys = if (value == 0) {
+            map.keys.sorted()
+        } else {
+            map.keys.sortedDescending()
+        }
+        // 按照排序后的键输出值
+        sortedKeys.forEach { key ->
+            map[key]?.let { u ->
+                val files = mutableListOf<File>()
+                val checkFiles = mutableListOf<Boolean>()
+                var type = ""
+                if (u.isNotEmpty()) {
+                    type = u.first().type
+                }
+                u.forEach { p ->
+                    val f = File(p.path)
+                    if (f.exists() && f.isFile) {
+                        files.add(f)
+                        checkFiles.add(false)
+                    }
+                }
+                if (files.size > 0) {
+                    fileItems.add(FileItem.TitleData(key, fileItems.size, MutableList(1) { 0 }))
+                    fileItems.add(
+                        FileItem.DataFileItem(
+                            u,
+                            ListFileItemAdapter(type, fileItems.size, files, checkFiles)
+                        )
+                    )
+                }
+            }
         }
         map.forEach { (t, u) ->
             val files = mutableListOf<File>()
@@ -320,7 +503,7 @@ class LocalFileFragment : Fragment() {
         // val spaceDecoration = SpaceItemDecoration(DisplayUtils.dp2px(requireContext(), 6f)) // 设置间距
         // recyclerView.addItemDecoration(spaceDecoration)
         recyclerView.adapter = adapter
-
+        Timber.d("initZips end")
     }
 
     private fun initTexts(data: MutableList<FileTrack>) {
@@ -416,7 +599,7 @@ class LocalFileFragment : Fragment() {
                 }
                 rv.adapter = data.adapter
                 // 展开
-                rv.isNestedScrollingEnabled = false
+                //rv.isNestedScrollingEnabled = false
             }
         }
 
@@ -574,7 +757,7 @@ class LocalFileFragment : Fragment() {
                 val gridFileItemAdapter = GridFileItemAdapter(data.fileInfo)
                 rv.adapter = gridFileItemAdapter
                 // 展开
-                rv.isNestedScrollingEnabled = false
+                //rv.isNestedScrollingEnabled = false
             }
         }
 
@@ -748,24 +931,94 @@ class LocalFileFragment : Fragment() {
                             )
                             .into(binding.ivIcon)
                     } else if (type in videoSuffixType){
+                            Glide.with(requireContext())
+                                .asBitmap()
+                                .frame(0)
+                                .load(item.absolutePath)
+                                .transform(
+                                    MultiTransformation(
+                                        CenterCrop(),
+                                        RoundedCorners(DisplayUtils.dp2px(requireContext(), 2f))
+                                    )
+                                )
+                                .placeholder(
+                                    getIcon4File(
+                                        GetProvider.get().context,
+                                        item.name
+                                    )
+                                )
+                                .into(binding.ivIcon)
                         // 视频
-                        Glide.with(requireContext())
-                            .asBitmap()
-                            .frame(0)
-                            .load(item.absolutePath)
-                            .transform(
-                                MultiTransformation(
-                                    CenterCrop(),
-                                    RoundedCorners(DisplayUtils.dp2px(requireContext(), 2f))
-                                )
-                            )
-                            .placeholder(
-                                getIcon4File(
-                                    GetProvider.get().context,
-                                    item.name
-                                )
-                            )
-                            .into(binding.ivIcon)
+//                        var path = item.absolutePath
+//                        val f = File(normalizeFilePath(mainViewModel.getSppSdcard()+removeFileExtension(item.absolutePath)+".jpg"))
+//                        if (f.exists() && f.isFile) {
+//                            path = f.absolutePath
+//                            Glide.with(requireContext())
+//                                .load(path)
+//                                .transform(
+//                                    MultiTransformation(
+//                                        CenterCrop(),
+//                                        RoundedCorners(DisplayUtils.dp2px(requireContext(), 2f))
+//                                    )
+//                                )
+//                                .placeholder(
+//                                    getIcon4File(
+//                                        GetProvider.get().context,
+//                                        item.name
+//                                    )
+//                                )
+//                                .into(binding.ivIcon)
+//                        }else{
+//                            Glide.with(requireContext())
+//                                .asBitmap()
+//                                .frame(0)
+//                                .load(path)
+//                                .transform(
+//                                    MultiTransformation(
+//                                        CenterCrop(),
+//                                        RoundedCorners(DisplayUtils.dp2px(requireContext(), 2f))
+//                                    )
+//                                )
+//                                .placeholder(
+//                                    getIcon4File(
+//                                        GetProvider.get().context,
+//                                        item.name
+//                                    )
+//                                )
+//                                .listener(object : RequestListener<Bitmap> {
+//                                    override fun onLoadFailed(
+//                                        e: GlideException?,
+//                                        model: Any?,
+//                                        target: Target<Bitmap>?,
+//                                        isFirstResource: Boolean
+//                                    ): Boolean {
+//                                        return false
+//                                    }
+//
+//                                    override fun onResourceReady(
+//                                        resource: Bitmap?,
+//                                        model: Any?,
+//                                        target: Target<Bitmap>?,
+//                                        dataSource: DataSource?,
+//                                        isFirstResource: Boolean
+//                                    ): Boolean {
+//                                        // 如果没有，就保存一下
+//                                        viewModel.saveDrawableAsJPG{
+//                                            resource?.run {
+//                                                createFileWithPath(f.absolutePath)?.let { ff ->
+//                                                    Timber.d("saveDrawableAsJPG start")
+//                                                    saveBitmapToFile(resource, ff)
+//                                                    Timber.d("saveDrawableAsJPG end")
+//                                                }
+//                                            }
+//                                        }
+//                                        return false
+//                                    }
+//                                })
+//                                .into(binding.ivIcon)
+//                        }
+
+
                     }else{
                         binding.ivIcon.setImageDrawable(
                             getIcon4File(
@@ -828,6 +1081,43 @@ class LocalFileFragment : Fragment() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val binding =
                 ItemListFileBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            return ViewHolder(binding)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.bind(items[position])
+        }
+
+        override fun getItemCount(): Int = items.size
+    }
+    inner class SortFileAdapter(val items: MutableList<String>) :
+        RecyclerView.Adapter<SortFileAdapter.ViewHolder>() {
+        inner class ViewHolder(private val binding: ItemSortNameBinding) :
+            RecyclerView.ViewHolder(binding.root) {
+
+            fun bind(item: String) {
+                binding.executePendingBindings()
+                binding.tvName.text = item
+                binding.ll.setOnClickListener {
+                    viewModel.changeSelectType.postValue(adapterPosition)
+                    binding.tvName.setTextColor(Color.BLUE)
+                    binding.ll.post {
+                        notifyDataSetChanged()
+                    }
+                    binding.ll.postDelayed({popupWindow?.dismiss()},100)
+                }
+                if (viewModel.changeSelectType.value == adapterPosition) {
+                    binding.tvName.setTextColor(Color.BLUE)
+                }else{
+                    binding.tvName.setTextColor(Color.BLACK)
+                }
+
+            }
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val binding =
+                ItemSortNameBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             return ViewHolder(binding)
         }
 
