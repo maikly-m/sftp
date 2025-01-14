@@ -18,6 +18,7 @@ minaCore = "2.1.6"
 roomRuntime = "2.6.1"
 slf4jApi = "2.0.9"
 sshdSftp = "2.7.0"
+sshj = "0.34.0"
 viewpager2 = "1.1.0"
 zxingCore = "3.4.1"
 kotlin = "1.9.0"
@@ -74,6 +75,7 @@ slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4jApi" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4jApi" }
 sshd-core = { module = "org.apache.sshd:sshd-core", version.ref = "sshdSftp" }
 sshd-sftp = { module = "org.apache.sshd:sshd-sftp", version.ref = "sshdSftp" }
+sshj = { module = "com.hierynomus:sshj", version.ref = "sshj" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxingCore" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

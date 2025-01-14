@@ -2,6 +2,7 @@ package com.example.ftp.ui.sftp
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -30,6 +31,7 @@ import com.example.ftp.databinding.ItemSortNameBinding
 import com.example.ftp.databinding.PopupWindowBottomBinding
 import com.example.ftp.databinding.PopupWindowSortFileBinding
 import com.example.ftp.event.ClientMessageEvent
+import com.example.ftp.player.playSftpVideo
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.service.ClientType
 import com.example.ftp.service.SftpClientService
@@ -46,9 +48,12 @@ import com.example.ftp.utils.formatTimeWithSimpleDateFormat
 import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.isFileNameValid
 import com.example.ftp.utils.isFolderNameValid
+import com.example.ftp.utils.normalizeFilePath
+import com.example.ftp.utils.openFileWithSystemApp
 import com.example.ftp.utils.showCustomAlertDialog
 import com.example.ftp.utils.showCustomFileInfoDialog
 import com.example.ftp.utils.showCustomInputDialog
+import com.example.ftp.utils.showCustomPlayerDialog
 import com.example.ftp.utils.showToast
 import com.example.ftp.utils.sortFiles
 import com.jcraft.jsch.ChannelSftp
@@ -878,8 +883,10 @@ class ClientSftpFragment : Fragment() {
                         binding.cl.setOnLongClickListener {true}
                     } else {
                         binding.ivSelect.visibility = View.GONE
+                        var d: AlertDialog? = null
+                        var d1: AlertDialog? = null
                         binding.cl.setOnClickListener {
-                            showCustomFileInfoDialog(requireContext(), "文件信息"){ b ->
+                            d = showCustomFileInfoDialog(requireContext(), "文件信息"){ b ->
                                 b.ivName.setImageDrawable(getIcon4File(GetProvider.get().context, item.filename))
                                 b.tvName.text = item.filename
                                 val extend = item.filename.substringAfterLast('.', "").lowercase()
@@ -888,8 +895,33 @@ class ClientSftpFragment : Fragment() {
                                 }
                                 b.tvTime.text = formatTimeWithSimpleDateFormat(item.attrs.mTime * 1000L)
                                 b.tvSize.text = item.attrs.size.toReadableFileSize()
+                                b.llOpen.visibility = View.VISIBLE
+                                b.btnOpen.setOnClickListener {
+                                    d?.dismiss()
+                                    // test
+                                    d1 = showCustomPlayerDialog(requireContext(), item.filename){ b ->
+
+                                        val info = MySPUtil.getInstance().clientConnectInfo
+                                        val path = normalizeFilePath(viewModel.getCurrentFilePath()+"/"+item.filename)
+                                        Timber.d("path =${path}")
+                                        val player = playSftpVideo(
+                                            context = requireContext(),
+                                            playerView = b.playerView,
+                                            sftpHost = info.ip,
+                                            sftpPort = info.port,
+                                            sftpUsername = info.name,
+                                            sftpPassword = info.pw,
+                                            videoPath = path
+                                        )
+                                        b.btnClose.setOnClickListener {
+                                            player.stop()
+                                            d1?.dismiss()
+                                        }
+                                    }
+                                }
                             }
                         }
+
                         binding.cl.setOnLongClickListener {
                             val p = adapterPosition
                             viewModel.showMultiSelectIcon.value = true

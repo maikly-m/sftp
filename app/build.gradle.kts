@@ -80,8 +80,8 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.glide)  // Glide 的核心库
     kapt(libs.compiler)  // Glide 的注解处理器，用于生成 Glide API
-//    implementation(libs.androidx.media3.exoplayer)
-//    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
     implementation(libs.compressor)
     implementation(libs.material.dialogs.core)
     implementation(libs.androidpicker.common)
@@ -98,16 +98,14 @@ dependencies {
     kapt(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
 
-    // ftp
-//    implementation(libs.ftpserver.core)
-//    implementation(files("../libs/ftp4j-1.7.2.jar"))
-//    implementation(libs.commons.net) // 替换为最新版本
 
     // sftp
     implementation(libs.jsch)//ssh
     implementation(libs.sshd.sftp)
     implementation(libs.sshd.core)
     implementation(libs.mina.core)
+
+    //implementation(libs.sshj)
 
     implementation(libs.eventbus)
 

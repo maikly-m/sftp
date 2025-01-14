@@ -23,7 +23,7 @@ class RecursiveFileObserver(
 
     private fun addObservers(file: File) {
         if (!file.exists()) return
-        Timber.d("addObservers ${file.absolutePath}")
+        // Timber.d("addObservers ${file.absolutePath}")
         // 为当前目录创建一个 FileObserver
         val observer = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             object : FileObserver(file.absolutePath, CREATE or DELETE) {
