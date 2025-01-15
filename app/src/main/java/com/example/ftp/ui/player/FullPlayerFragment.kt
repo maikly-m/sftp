@@ -14,6 +14,9 @@ import android.view.ViewGroup
 import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView.ControllerVisibilityListener
 import androidx.recyclerview.widget.RecyclerView
@@ -23,6 +26,7 @@ import com.example.ftp.databinding.ItemListFileBinding
 import com.example.ftp.player.playSftpVideo
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.ui.dialog.PlayListDialog
+import com.example.ftp.ui.dialog.ProgressDialog
 import com.example.ftp.ui.toReadableFileSize
 import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.formatTimeWithSimpleDateFormat
@@ -174,6 +178,64 @@ class FullPlayerFragment : Fragment() {
             }
         })
 
+        // 监听切换
+        player.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                when (playbackState) {
+                    Player.STATE_IDLE -> {
+                        // Player 处于空闲状态
+                        Timber.d("ExoPlayer is idle")
+                    }
+                    Player.STATE_BUFFERING -> {
+                        // Player 正在缓冲
+                        viewModel.loading.postValue(true)
+                        Timber.d("ExoPlayer is buffering")
+                    }
+                    Player.STATE_READY -> {
+                        // Player 已准备好，可能会开始播放
+                        viewModel.loading.postValue(false)
+                        Timber.d("ExoPlayer is ready")
+                    }
+                    Player.STATE_ENDED -> {
+                        viewModel.loading.postValue(false)
+                        // 播放结束
+                        Timber.d("ExoPlayer playback ended")
+                    }
+                }
+            }
+
+            override fun onIsLoadingChanged(isLoading: Boolean) {
+                // 加载状态发生变化
+                if (isLoading) {
+                    //viewModel.loading.postValue(true)
+                    Timber.d("ExoPlayer is loading")
+                } else {
+                    Timber.d("ExoPlayer finished loading")
+                    //viewModel.loading.postValue(false)
+                }
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                super.onMediaItemTransition(mediaItem, reason)
+                // 获取当前播放的 MediaItem 索引
+                val currentIndex = player.currentMediaItemIndex
+                Timber.d("Current MediaItem Index: $currentIndex")
+                // 获取具体的 MediaItem
+                val currentItem = player.currentMediaItem
+                Timber.d("Current MediaItem: ${currentItem?.mediaId}")
+
+                viewModel.index = currentIndex
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                super.onPlayerError(error)
+                // 捕获播放异常
+                Timber.d("Player error occurred: ${error.message}")
+                // 错误后重置播放器并重新加载媒体
+                player.prepare()
+            }
+        })
+
         binding.ivList.setOnClickListener {
             // 弹窗
             if (playListDialog != null && playListDialog?.isVisible == true){
@@ -184,9 +246,17 @@ class FullPlayerFragment : Fragment() {
         }
 
         viewModel.seekPos.observe(viewLifecycleOwner){
+            viewModel.index = it
             // play
             player.seekTo(it, 0)
-            viewModel.index = it
+        }
+        viewModel.loading.observe(viewLifecycleOwner){
+            // play
+            if (it) {
+                binding.clLoading.visibility = View.VISIBLE
+            } else {
+                binding.clLoading.visibility = View.GONE
+            }
         }
     }
 

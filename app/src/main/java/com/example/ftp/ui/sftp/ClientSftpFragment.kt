@@ -19,6 +19,7 @@ import android.widget.PopupWindow
 import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.media3.common.Player
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -47,6 +48,7 @@ import com.example.ftp.utils.formatTimeWithSimpleDateFormat
 import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.isFileNameValid
 import com.example.ftp.utils.isFolderNameValid
+import com.example.ftp.utils.musicSuffixType
 import com.example.ftp.utils.normalizeFilePath
 import com.example.ftp.utils.showCustomAlertDialog
 import com.example.ftp.utils.showCustomFileInfoDialog
@@ -54,6 +56,7 @@ import com.example.ftp.utils.showCustomInputDialog
 import com.example.ftp.utils.showCustomPlayerDialog
 import com.example.ftp.utils.showToast
 import com.example.ftp.utils.sortFiles
+import com.example.ftp.utils.videoSuffixType
 import com.jcraft.jsch.ChannelSftp
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -897,7 +900,12 @@ class ClientSftpFragment : Fragment() {
                                 }
                                 b.tvTime.text = formatTimeWithSimpleDateFormat(item.attrs.mTime * 1000L)
                                 b.tvSize.text = item.attrs.size.toReadableFileSize()
-                                b.llOpen.visibility = View.VISIBLE
+                                // 判断类型显示是否打开
+                                if (musicSuffixType.contains(extend) || videoSuffixType.contains(extend)){
+                                    b.llOpen.visibility = View.VISIBLE
+                                }else{
+                                    b.llOpen.visibility = View.GONE
+                                }
                                 b.btnOpen.setOnClickListener {
                                     d?.dismiss()
                                     // test
@@ -926,38 +934,21 @@ class ClientSftpFragment : Fragment() {
                                             // 全屏
                                             d1?.dismiss()
                                             // 开启新的页面播放
-//                                            player.pause()
-//                                            mainViewModel.player = player
-//                                            // add items
-//                                            val before = mutableListOf<MediaItem>()
-//                                            val after = mutableListOf<MediaItem>()
-//                                            items.forEachIndexed { index, lsEntry ->
-//                                                if (index < pp){
-//                                                    MediaItem.fromUri(Uri.parse(viewModel.getCurrentFilePath()+"/"+ lsEntry.filename)).run {
-//                                                        before.add(this)
-//                                                    }
-//                                                }else if (index == pp) {
-//                                                    // 不需要
-//                                                }else{
-//                                                    MediaItem.fromUri(Uri.parse(viewModel.getCurrentFilePath()+"/"+ lsEntry.filename)).run {
-//                                                        after.add(this)
-//                                                    }
-//                                                }
-//                                            }
-//                                            player.addMediaItems(0, before.toList())
-//                                            player.addMediaItems(after.toList())
-//                                            findNavController().navigate(R.id.action_client_sftp2full_player, null)
                                             // add items
                                             val playList = ArrayList<String>()
                                             items.forEachIndexed { index, lsEntry ->
-                                                (viewModel.getCurrentFilePath()+"/"+ lsEntry.filename).run {
-                                                    playList.add(this)
+                                                if (lsEntry.attrs.isReg){
+                                                    if (musicSuffixType.contains(extend) || videoSuffixType.contains(extend)){
+                                                        (viewModel.getCurrentFilePath()+"/"+ lsEntry.filename).run {
+                                                            playList.add(normalizeFilePath(this))
+                                                        }
+                                                    }
                                                 }
                                             }
 
                                             Intent(requireActivity(), FullPlayerActivity::class.java).apply {
                                                 val bundle = Bundle()
-                                                bundle.putInt("index", pp)
+                                                bundle.putInt("index", playList.indexOf(path))
                                                 bundle.putLong("seek",  player.currentPosition)//ms
                                                 bundle.putStringArrayList("playList", playList)
                                                 putExtras(bundle)
@@ -966,6 +957,44 @@ class ClientSftpFragment : Fragment() {
                                             player.stop()
                                             player.release()
                                         }
+
+                                        // 监听切换
+                                        player.addListener(object : Player.Listener {
+                                            override fun onPlaybackStateChanged(playbackState: Int) {
+                                                when (playbackState) {
+                                                    Player.STATE_IDLE -> {
+                                                        // Player 处于空闲状态
+                                                        Timber.d("ExoPlayer is idle")
+                                                    }
+                                                    Player.STATE_BUFFERING -> {
+                                                        // Player 正在缓冲
+                                                        b.clLoading.visibility = View.VISIBLE
+                                                        Timber.d("ExoPlayer is buffering")
+                                                    }
+                                                    Player.STATE_READY -> {
+                                                        // Player 已准备好，可能会开始播放
+                                                        b.clLoading.visibility = View.GONE
+                                                        Timber.d("ExoPlayer is ready")
+                                                    }
+                                                    Player.STATE_ENDED -> {
+                                                        b.clLoading.visibility = View.GONE
+                                                        // 播放结束
+                                                        Timber.d("ExoPlayer playback ended")
+                                                    }
+                                                }
+                                            }
+
+                                            override fun onIsLoadingChanged(isLoading: Boolean) {
+                                                // 加载状态发生变化
+                                                if (isLoading) {
+                                                    //b.clLoading.visibility = View.VISIBLE
+                                                    Timber.d("ExoPlayer is loading")
+                                                } else {
+                                                    Timber.d("ExoPlayer finished loading")
+                                                    //b.clLoading.visibility = View.GONE
+                                                }
+                                            }
+                                        })
                                     }
                                 }
                             }

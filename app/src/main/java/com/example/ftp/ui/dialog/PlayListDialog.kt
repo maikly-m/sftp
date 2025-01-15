@@ -176,6 +176,8 @@ class PlayListDialog : DialogFragment() {
                     // 播放
                     mViewModel.seekPos.postValue(adapterPosition)
                     notifyDataSetChanged()
+                    // 关闭
+                    dismissAllowingStateLoss()
                 }
             }
 
@@ -184,7 +186,7 @@ class PlayListDialog : DialogFragment() {
                 binding.executePendingBindings()
                 val fileName = item.substringAfterLast("/")
                 binding.tvName.text = fileName
-                if (adapterPosition == mViewModel.seekPos.value) {
+                if (adapterPosition == mViewModel.index) {
                     // 选中
                     binding.tvName.setTextColor(requireActivity().resources.getColor(R.color.color_1296db))
                 } else {
