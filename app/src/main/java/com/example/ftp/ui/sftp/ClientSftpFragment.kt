@@ -35,11 +35,10 @@ import com.example.ftp.player.playSftpVideo
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.service.ClientType
 import com.example.ftp.service.SftpClientService
-import com.example.ftp.ui.dialog.LoadingDialog
+import com.example.ftp.ui.MainViewModel
 import com.example.ftp.ui.dialog.PickFilesDialog
-import com.example.ftp.ui.dialog.ProgressDialog
 import com.example.ftp.ui.format
-import com.example.ftp.ui.local.FileItem
+import com.example.ftp.ui.player.FullPlayerActivity
 import com.example.ftp.ui.toReadableFileSize
 import com.example.ftp.ui.toReadableFileSizeFormat1
 import com.example.ftp.utils.DisplayUtils
@@ -49,7 +48,6 @@ import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.isFileNameValid
 import com.example.ftp.utils.isFolderNameValid
 import com.example.ftp.utils.normalizeFilePath
-import com.example.ftp.utils.openFileWithSystemApp
 import com.example.ftp.utils.showCustomAlertDialog
 import com.example.ftp.utils.showCustomFileInfoDialog
 import com.example.ftp.utils.showCustomInputDialog
@@ -61,11 +59,13 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import timber.log.Timber
+import java.util.ArrayList
 import java.util.Vector
 import kotlin.math.roundToInt
 
 class ClientSftpFragment : Fragment() {
 
+    private lateinit var mainViewModel: MainViewModel
     private var transferAnimator: ValueAnimator? = null
     private var popupWindow: PopupWindow? = null
     private var pickFilesDialog: PickFilesDialog? = null
@@ -92,7 +92,8 @@ class ClientSftpFragment : Fragment() {
         EventBus.getDefault().register(this)
         viewModel =
             ViewModelProvider(this).get(ClientSftpViewModel::class.java)
-
+        mainViewModel =
+            ViewModelProvider(requireActivity()).get(MainViewModel::class.java)
         _binding = FragmentClientSftpBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
@@ -885,6 +886,7 @@ class ClientSftpFragment : Fragment() {
                         binding.ivSelect.visibility = View.GONE
                         var d: AlertDialog? = null
                         var d1: AlertDialog? = null
+                        val pp = adapterPosition
                         binding.cl.setOnClickListener {
                             d = showCustomFileInfoDialog(requireContext(), "文件信息"){ b ->
                                 b.ivName.setImageDrawable(getIcon4File(GetProvider.get().context, item.filename))
@@ -903,6 +905,7 @@ class ClientSftpFragment : Fragment() {
 
                                         val info = MySPUtil.getInstance().clientConnectInfo
                                         val path = normalizeFilePath(viewModel.getCurrentFilePath()+"/"+item.filename)
+
                                         Timber.d("path =${path}")
                                         val player = playSftpVideo(
                                             context = requireContext(),
@@ -911,11 +914,57 @@ class ClientSftpFragment : Fragment() {
                                             sftpPort = info.port,
                                             sftpUsername = info.name,
                                             sftpPassword = info.pw,
-                                            videoPath = path
+                                            videoPath = MutableList(1){path}
                                         )
-                                        b.btnClose.setOnClickListener {
+                                        b.ivClose.setOnClickListener {
+                                            // 关闭
                                             player.stop()
                                             d1?.dismiss()
+                                        }
+                                        b.ivFullScreen.setOnClickListener {
+                                            b.playerView.player = null
+                                            // 全屏
+                                            d1?.dismiss()
+                                            // 开启新的页面播放
+//                                            player.pause()
+//                                            mainViewModel.player = player
+//                                            // add items
+//                                            val before = mutableListOf<MediaItem>()
+//                                            val after = mutableListOf<MediaItem>()
+//                                            items.forEachIndexed { index, lsEntry ->
+//                                                if (index < pp){
+//                                                    MediaItem.fromUri(Uri.parse(viewModel.getCurrentFilePath()+"/"+ lsEntry.filename)).run {
+//                                                        before.add(this)
+//                                                    }
+//                                                }else if (index == pp) {
+//                                                    // 不需要
+//                                                }else{
+//                                                    MediaItem.fromUri(Uri.parse(viewModel.getCurrentFilePath()+"/"+ lsEntry.filename)).run {
+//                                                        after.add(this)
+//                                                    }
+//                                                }
+//                                            }
+//                                            player.addMediaItems(0, before.toList())
+//                                            player.addMediaItems(after.toList())
+//                                            findNavController().navigate(R.id.action_client_sftp2full_player, null)
+                                            // add items
+                                            val playList = ArrayList<String>()
+                                            items.forEachIndexed { index, lsEntry ->
+                                                (viewModel.getCurrentFilePath()+"/"+ lsEntry.filename).run {
+                                                    playList.add(this)
+                                                }
+                                            }
+
+                                            Intent(requireActivity(), FullPlayerActivity::class.java).apply {
+                                                val bundle = Bundle()
+                                                bundle.putInt("index", pp)
+                                                bundle.putLong("seek",  player.currentPosition)//ms
+                                                bundle.putStringArrayList("playList", playList)
+                                                putExtras(bundle)
+                                                startActivity(this)
+                                            }
+                                            player.stop()
+                                            player.release()
                                         }
                                     }
                                 }

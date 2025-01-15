@@ -72,7 +72,8 @@ dependencies {
     implementation(libs.loggingInterceptor)
     implementation(libs.jakewharton.timber)
 //    implementation(libs.tencent.mm.opensdk)
-    implementation(libs.auto.value.gson) // AutoValue Gson 扩展库
+    implementation(libs.auto.value.gson)
+    implementation(libs.androidx.activity) // AutoValue Gson 扩展库
     kapt(libs.auto.value)  // AutoValue 注解处理器
     kapt(libs.auto.value.gson)   // Gson 扩展的注解处理器
     implementation(libs.zxing.core)  // ZXing 核心库

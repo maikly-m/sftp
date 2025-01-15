@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo.WindowLayout
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -39,6 +40,7 @@ import android.view.WindowManager
 import android.webkit.MimeTypeMap
 import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.FileProvider
 import androidx.fragment.app.FragmentActivity
@@ -117,7 +119,7 @@ fun setFullScreen(window: Window?): Pair<Int, Int>? {
     return Pair(oldCutoutMode, oldOption)
 }
 
-fun recover(window: Window?, config: androidx.core.util.Pair<Int?, Int>) {
+fun recover(window: Window?, config: Pair<Int?, Int>) {
     if (window == null) return
     val attributes = window.attributes
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -810,7 +812,14 @@ fun showCustomAlertDialog(context: Context, title: String, message: String, canc
     alertDialog.show()
 
     // 设置对话框的宽高
-    val w = DisplayUtils.getScreenWidth(alertDialog.context) * 3 / 4
+    var w = DisplayUtils.getScreenWidth(alertDialog.context) * 3 / 4
+    val isLandscape = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    if (isLandscape) {
+        // 当前是横屏
+        w = DisplayUtils.getScreenHeight(alertDialog.context) * 3 / 4
+    } else {
+        // 当前是竖屏
+    }
     alertDialog.window?.setLayout(w, WindowManager.LayoutParams.WRAP_CONTENT)
     // 调整对话框透明度
     alertDialog.window?.attributes = alertDialog.window?.attributes?.apply {

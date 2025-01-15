@@ -7,6 +7,7 @@ import android.text.TextUtils
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.exoplayer.ExoPlayer
 import com.example.ftp.R
 import com.example.ftp.bean.FileInfo
 import com.example.ftp.observe.RecursiveFileObserver
@@ -24,8 +25,6 @@ import com.example.ftp.utils.normalizeFilePath
 import com.example.ftp.utils.pdfSuffixType
 import com.example.ftp.utils.pptSuffixType
 import com.example.ftp.utils.removeFileExtension
-import com.example.ftp.utils.saveVideoThumbnail
-import com.example.ftp.utils.saveVideoThumbnailWithOriginalSize
 import com.example.ftp.utils.textSuffixType
 import com.example.ftp.utils.thread.SingleLiveEvent
 import com.example.ftp.utils.videoSuffixType
@@ -42,6 +41,7 @@ import java.io.File
 @OptIn(FlowPreview::class)
 class MainViewModel : ViewModel() {
 
+    var player: ExoPlayer? = null
     private var appSdcard: String = ""
     fun getSppSdcard() = appSdcard
     private lateinit var fileObserver: RecursiveFileObserver

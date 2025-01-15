@@ -61,7 +61,10 @@
     <fragment
         android:id="@+id/navigation_client_sftp"
         android:name="com.example.ftp.ui.sftp.ClientSftpFragment"
-        tools:layout="@layout/fragment_client_sftp" />
+        tools:layout="@layout/fragment_client_sftp" >
+        <action android:id="@+id/action_client_sftp2full_player"
+            app:destination="@+id/navigation_full_player"/>
+    </fragment>
     <fragment
         android:id="@+id/navigation_scan_code"
         android:name="com.example.ftp.ui.home.ScanCodeFragment"
@@ -70,4 +73,8 @@
         android:id="@+id/navigation_introduce"
         android:name="com.example.ftp.ui.home.IntroduceFragment"
         tools:layout="@layout/fragment_introduce" />
+    <fragment
+        android:id="@+id/navigation_full_player"
+        android:name="com.example.ftp.ui.player.FullPlayerFragment"
+        tools:layout="@layout/fragment_full_player" />
 </navigation>

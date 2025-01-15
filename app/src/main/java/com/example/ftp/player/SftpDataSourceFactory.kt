@@ -3,11 +3,6 @@ package com.example.ftp.player
 import SftpDataSource
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
-import com.example.ftp.provider.GetProvider
-import com.jcraft.jsch.ChannelSftp
-import com.jcraft.jsch.JSch
-import com.jcraft.jsch.Session
-import java.io.InputStream
 
 @UnstableApi
 class SftpDataSourceFactory(
@@ -18,6 +13,7 @@ class SftpDataSourceFactory(
 ) : DataSource.Factory {
 
     override fun createDataSource(): DataSource {
+        // 这里可以根据协议来实现
         return SftpDataSource(host, port, username, password)
     }
 }

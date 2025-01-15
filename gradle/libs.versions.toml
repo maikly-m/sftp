@@ -45,6 +45,7 @@ cameraCamera2 = "1.4.1"
 cameraCore = "1.4.1"
 cameraLifecycle = "1.4.1"
 lottie = "6.0.0"
+activity = "1.9.3"
 
 [libraries]
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
@@ -99,6 +100,7 @@ zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", ve
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraCore" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraLifecycle" }
 lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
+androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
