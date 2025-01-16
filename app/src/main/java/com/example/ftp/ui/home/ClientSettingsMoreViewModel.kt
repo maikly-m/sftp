@@ -8,7 +8,9 @@ import com.example.ftp.utils.MySPUtil
 class ClientSettingsMoreViewModel : ViewModel() {
 
     var etSavePath: String = "/"
+    var etUploadPath: String = "/sftp"
     init {
         etSavePath = MySPUtil.getInstance().downloadSavePath
+        etUploadPath = MySPUtil.getInstance().uploadSavePath
     }
 }

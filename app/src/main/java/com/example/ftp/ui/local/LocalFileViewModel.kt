@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 class LocalFileViewModel : ViewModel() {
 
-    private var currentPath: String = "/" // 当前服务器目录
+    private var currentPath: String = "/sftp" // 当前服务器目录
     private var connectInfo: ConnectInfo? = null
     // 创建自定义的 IO Dispatcher
     val customIODispatcher = Executors.newFixedThreadPool(2).asCoroutineDispatcher()
@@ -58,6 +58,7 @@ class LocalFileViewModel : ViewModel() {
 
     init {
         connectInfo = MySPUtil.getInstance().clientConnectInfo
+        currentPath = MySPUtil.getInstance().uploadSavePath
     }
 
     fun saveDrawableAsJPG(function: () -> Unit) {

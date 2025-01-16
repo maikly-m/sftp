@@ -21,6 +21,8 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.InsetDrawable
 import android.media.MediaMetadataRetriever
 import android.media.MediaScannerConnection
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
@@ -462,6 +464,19 @@ fun grantExternalStorage(activity: FragmentActivity, block: (b:Boolean)-> Unit):
     }
 }
 
+fun isConnectedToWifi(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI)
+        return networkInfo?.isConnected == true
+    } else {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(network)
+        return capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+    }
+}
+
 fun getLocalIpAddress(context: Context): String {
     val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     val connectionInfo: WifiInfo = wifiManager.connectionInfo
@@ -866,12 +881,34 @@ fun replaceCursorStyle(context: Context, et: EditText) {
 val textSuffixType = listOf("text", "txt", "rtf", "md")
 val zipSuffixType = listOf("zip", "rar", "tar", ".gz", "7z")
 val docSuffixType = listOf("doc", "docx")
+val excSuffixType = listOf("xls", "xlsx", "csv")
 val pptSuffixType = listOf("ppt")
 val pdfSuffixType = listOf("pdf")
 val musicSuffixType = listOf("mp3","m4a","flac","wav","aac")
 val videoSuffixType = listOf("mp4","mkv","avi","mov","flv", "rm", "rmvb", "wmv","webm")
 val imageSuffixType = listOf("png","jpeg","jpg","gif","bmp")
 val apkSuffixType = listOf("apk")
+val otherSuffixType = listOf(
+    "java",
+    "py",
+    "js",
+    "html",
+    "css",
+    "json",
+    "xml",
+    "c",
+    "cpp",
+    "bat",
+    "sh",
+
+    "exe",
+    "dll",
+    "iso",
+
+    "log",
+    "config",
+    "ini",
+)
 
 fun getIcon4File(context: Context, filename: String): Drawable {
     val extend = filename.substringAfterLast('.', "").lowercase()
@@ -888,6 +925,9 @@ fun getIcon4File(context: Context, filename: String): Drawable {
          in docSuffixType-> {
              context.resources.getDrawable(R.drawable.svg_word_icon)
          }
+        in excSuffixType-> {
+            context.resources.getDrawable(R.drawable.svg_excel_icon)
+        }
         in pptSuffixType-> {
             context.resources.getDrawable(R.drawable.svg_ppt_icon)
         }
@@ -905,6 +945,9 @@ fun getIcon4File(context: Context, filename: String): Drawable {
         }
         in apkSuffixType-> {
             context.resources.getDrawable(R.drawable.svg_apk_icon)
+        }
+        in otherSuffixType-> {
+            context.resources.getDrawable(R.drawable.svg_file_unknown_icon)
         }
         else -> {
             context.resources.getDrawable(R.drawable.svg_file_unknown_icon)

@@ -419,7 +419,7 @@ class LocalFileFragment : Fragment() {
 
             }
             // 加上前缀
-            viewModel.uploadLocalFiles(sftpClientService, "/sftp/${type?.type ?: ""}", files)
+            viewModel.uploadLocalFiles(sftpClientService, "/${type?.type ?: ""}", files)
             binding.layoutBottomSelectLocal.container.visibility = View.GONE
             viewModel.showMultiSelectIcon.value = false
         }
@@ -472,6 +472,10 @@ class LocalFileFragment : Fragment() {
                     "apk" -> initApks(data)
                     "text" -> initTexts(data)
                     "zip" -> initZips(data)
+                    "doc" -> initZips(data)
+                    "ppt" -> initZips(data)
+                    "pdf" -> initZips(data)
+                    "other" -> initZips(data)
                     else -> {}
                 }
             }
@@ -1170,6 +1174,11 @@ class LocalFileFragment : Fragment() {
                                 }
                                 b.tvTime.text = formatTimeWithSimpleDateFormat(item.lastModified())
                                 b.tvSize.text = item.length().toReadableFileSize()
+
+                                b.llFullPath.visibility = View.VISIBLE
+                                b.tvFullPath.text = item.absolutePath
+                                // 可以复制
+                                b.tvFullPath.setTextIsSelectable(true)
 
                                 b.llOpen.visibility = View.VISIBLE
                                 b.btnOpen.setOnClickListener {

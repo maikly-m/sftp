@@ -115,7 +115,7 @@ class ClientBrowserFragment : Fragment() {
 
                 binding.ivLocalFile.setRoundedCorners(DisplayUtils.dp2px(GetProvider.get().context, 5f).toFloat())
                 binding.ivLocalFile.setImageResource(item.icon)
-                binding.tvLocalFileName.text = item.type
+                binding.tvLocalFileName.text = item.name
                 binding.tvLocalFileCount.text = "${item.count}项"
 
                 binding.cv.setOnClickListener {

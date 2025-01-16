@@ -1,16 +1,16 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="48dp" android:viewportHeight="1024" android:viewportWidth="1024" android:width="48dp">
       
-    <path android:fillColor="#A3D1C1" android:pathData="M832.2,127.9v766H192.7v-766h639.5m0,-64H192.7c-35.3,0 -64,28.7 -64,64v766c0,35.3 28.7,64 64,64h639.5c35.3,0 64,-28.7 64,-64v-766c0,-35.4 -28.7,-64 -64,-64z"/>
+    <path android:fillColor="#1296db" android:pathData="M832.2,127.9v766H192.7v-766h639.5m0,-64H192.7c-35.3,0 -64,28.7 -64,64v766c0,35.3 28.7,64 64,64h639.5c35.3,0 64,-28.7 64,-64v-766c0,-35.4 -28.7,-64 -64,-64z"/>
       
-    <path android:fillColor="#A3D1C1" android:pathData="M261.4,416.2v-223.3h223.3v223.3zM261.4,510.5v-32h503.9v32zM575.2,415.3v-32h190.1v32zM575.3,225.1v-32h190.1v32zM575.3,323v-32h190.1v32z"/>
+    <path android:fillColor="#1296db" android:pathData="M261.4,416.2v-223.3h223.3v223.3zM261.4,510.5v-32h503.9v32zM575.2,415.3v-32h190.1v32zM575.3,225.1v-32h190.1v32zM575.3,323v-32h190.1v32z"/>
       
-    <path android:fillColor="#A3D1C1" android:pathData="M448.8,655.4h-32v-175.2h32zM293.4,655.4h-32v-175.2h32zM765.6,655.5h-32v-462.7h32zM607.2,655.5h-32v-462.7h32z"/>
+    <path android:fillColor="#1296db" android:pathData="M448.8,655.4h-32v-175.2h32zM293.4,655.4h-32v-175.2h32zM765.6,655.5h-32v-462.7h32zM607.2,655.5h-32v-462.7h32z"/>
       
-    <path android:fillColor="#A3D1C1" android:pathData="M261.4,605.4v-32h503.9v32z"/>
+    <path android:fillColor="#1296db" android:pathData="M261.4,605.4v-32h503.9v32z"/>
       
     <path android:fillColor="#8C98A6" android:pathData="M733,824.2v-32h97.9v32z"/>
       
-    <path android:fillColor="#83B29E" android:pathData="M896.2,958.3H212.9v-176c0,-35.3 28.7,-64 64,-64h619.3c35.3,0 64,28.7 64,64v112c0,35.4 -28.7,64 -64,64z"/>
+    <path android:fillColor="#1296db" android:pathData="M896.2,958.3H212.9v-176c0,-35.3 28.7,-64 64,-64h619.3c35.3,0 64,28.7 64,64v112c0,35.4 -28.7,64 -64,64z"/>
       
     <path android:fillColor="#FFFFFF" android:pathData="M385.9,771v20h-79.6v39.6h74.8v20h-74.8v43.2h83v20H282.9V771h103zM430.1,771l33.6,50.4 33.6,-50.4h28.6l-48.2,69 51.4,73.8h-28.6l-36.8,-55.2 -36.8,55.2h-28.6l51,-73.8 -47.8,-69h28.6zM647.7,781.4c10.4,8.4 16.6,20 18.8,34.4h-22.8c-2.4,-9.4 -6.8,-16.2 -13.4,-20.6 -6.4,-4.4 -14.6,-6.4 -24.6,-6.4 -15,0 -26.2,5 -33.8,15.4 -7,9.2 -10.4,22 -10.4,38.4 0,16.8 3.4,29.8 10.2,38.8 7.4,9.6 19,14.6 34.6,14.6 10.2,0 18.6,-2.6 25,-7.4 6.8,-5.4 11.6,-13.6 14.4,-24.4h22.8c-3.2,16.8 -10.6,29.8 -22.4,39.2 -11,8.8 -24.2,13.2 -39.6,13.2 -23.8,0 -41.6,-7.6 -53.2,-22.4 -10.2,-12.8 -15.2,-30 -15.2,-51.6 0,-21.2 5.2,-38.6 15.8,-51.8 12,-15.2 29.4,-22.6 52.2,-22.6 16.8,0 30.8,4.4 41.6,13.2zM793.5,771v20h-79.6v39.6h74.8v20h-74.8v43.2h83v20H690.5V771h103zM842.1,771v122.8h77.2v20H818.9V771h23.2z"/>
       

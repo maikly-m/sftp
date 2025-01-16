@@ -128,6 +128,33 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
         <LinearLayout
+            android:id="@+id/ll_full_path"
+            android:visibility="gone"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView
+                android:gravity="start"
+                android:textColor="@color/color_434242"
+                android:textSize="14sp"
+                android:text="路径:"
+                android:id="@+id/tv_full_path_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+            <TextView
+                android:layout_marginStart="4dp"
+                android:gravity="start"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                android:text="无"
+                android:maxLines="8"
+                android:ellipsize="end"
+                android:id="@+id/tv_full_path"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+        <LinearLayout
             android:id="@+id/ll_open"
             android:visibility="gone"
             android:layout_marginTop="6dp"

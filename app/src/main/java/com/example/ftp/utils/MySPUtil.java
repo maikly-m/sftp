@@ -50,7 +50,7 @@ public class MySPUtil {
     public static final String SERVER_SORT_TYPE = "server_sort_type";
     public static final String CLIENT_SORT_TYPE = "client_sort_type";
     public static final String DOWNLOAD_SAVE_PATH = "download_save_path";
-    public static final String SERVER_NAME = "server_name";
+    public static final String UPLOAD_SAVE_PATH = "upload_save_path";
     public static final String SERVER_PW = "server_pw";
 
     public static final String SERVER_CONNECT_INFO = "server_connect_info";
@@ -89,6 +89,13 @@ public class MySPUtil {
     }
     public String getDownloadSavePath(){
         return spUtils.getString(DOWNLOAD_SAVE_PATH, "/");
+    }
+
+    public void setUploadSavePath(String s){
+        spUtils.put(UPLOAD_SAVE_PATH, s);
+    }
+    public String getUploadSavePath(){
+        return spUtils.getString(UPLOAD_SAVE_PATH, "/sftp");
     }
 
 }

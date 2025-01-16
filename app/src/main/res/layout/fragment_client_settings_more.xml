@@ -56,13 +56,52 @@
                 android:textSize="15sp" />
         </LinearLayout >
         <View
-            android:id="@+id/view_ip_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="5dp"
             android:layout_marginBottom="10dp"
             android:background="@color/color_EEF0F4" />
 
+        <TextView
+            android:id="@+id/tv_upload_path"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="上传位置"
+            android:textColor="@color/color_383838"
+            android:textSize="14sp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal" >
+            <ImageView
+                android:padding="3dp"
+                android:layout_gravity="center"
+                android:id="@+id/iv_upload_path"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/svg_upload_icon_2" />
+            <EditText
+                android:id="@+id/et_upload_path"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="13dp"
+                android:layout_weight="1"
+                android:textColorHint="@color/color_6b434242"
+                android:text="/"
+                android:inputType="textMultiLine"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:background="@android:color/transparent"
+                android:textColor="@color/color_434242"
+                android:textSize="15sp" />
+        </LinearLayout >
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="10dp"
+            android:background="@color/color_EEF0F4" />
         <com.google.android.material.button.MaterialButton
             android:backgroundTint="@color/color_991296db"
             app:cornerRadius="20dp"

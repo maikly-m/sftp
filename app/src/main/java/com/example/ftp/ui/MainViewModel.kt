@@ -19,9 +19,11 @@ import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.apkSuffixType
 import com.example.ftp.utils.delFile
 import com.example.ftp.utils.docSuffixType
+import com.example.ftp.utils.excSuffixType
 import com.example.ftp.utils.imageSuffixType
 import com.example.ftp.utils.musicSuffixType
 import com.example.ftp.utils.normalizeFilePath
+import com.example.ftp.utils.otherSuffixType
 import com.example.ftp.utils.pdfSuffixType
 import com.example.ftp.utils.pptSuffixType
 import com.example.ftp.utils.removeFileExtension
@@ -51,6 +53,11 @@ class MainViewModel : ViewModel() {
     private var texts: MutableList<FileTrack> = mutableListOf()
     private var apks: MutableList<FileTrack> = mutableListOf()
     private var zips: MutableList<FileTrack> = mutableListOf()
+    private var docs: MutableList<FileTrack> = mutableListOf()
+    private var excs: MutableList<FileTrack> = mutableListOf()
+    private var ppts: MutableList<FileTrack> = mutableListOf()
+    private var pdfs: MutableList<FileTrack> = mutableListOf()
+    private var others: MutableList<FileTrack> = mutableListOf()
 
     private var fileTrackDao: FileTrackDao =
         DatabaseInstance.getDatabase(GetProvider.get().context).fileTrackDao()
@@ -64,8 +71,12 @@ class MainViewModel : ViewModel() {
         FileInfo("text", "文本", 0, R.drawable.svg_text_icon),
         FileInfo("apk", "APK", 0, R.drawable.svg_apk_icon),
         FileInfo("zip", "压缩包", 0, R.drawable.svg_zip_icon),
+        FileInfo("doc", "DOC", 0, R.drawable.svg_word_icon),
+        FileInfo("exc", "EXC", 0, R.drawable.svg_excel_icon),
+        FileInfo("ppt", "PPT", 0, R.drawable.svg_ppt_icon),
+        FileInfo("pdf", "PDF", 0, R.drawable.svg_pdf_icon),
+        FileInfo("other", "其他", 0, R.drawable.svg_file_unknown_icon),
     )
-
     val fileMap = hashMapOf(
         "image" to images,
         "video" to videos,
@@ -73,6 +84,11 @@ class MainViewModel : ViewModel() {
         "text" to texts,
         "apk" to apks,
         "zip" to zips,
+        "doc" to docs,
+        "exc" to excs,
+        "ppt" to ppts,
+        "pdf" to pdfs,
+        "other" to others,
     )
 
     val fileSuffix = mutableListOf<String>()
@@ -107,8 +123,10 @@ class MainViewModel : ViewModel() {
             addAll(apkSuffixType)
             addAll(zipSuffixType)
             addAll(docSuffixType)
+            addAll(excSuffixType)
             addAll(pptSuffixType)
             addAll(pdfSuffixType)
+            addAll(otherSuffixType)
         }
         appSdcard = "${GetProvider.get().context.filesDir}/sdcard/"
     }
@@ -163,6 +181,42 @@ class MainViewModel : ViewModel() {
 
             "zip" -> {
                 zipSuffixType.forEach {
+                    fileTrackDao.getByType(it)?.run {
+                        f.addAll(this)
+                    }
+                }
+            }
+            "doc" -> {
+                docSuffixType.forEach {
+                    fileTrackDao.getByType(it)?.run {
+                        f.addAll(this)
+                    }
+                }
+            }
+            "exc" -> {
+                excSuffixType.forEach {
+                    fileTrackDao.getByType(it)?.run {
+                        f.addAll(this)
+                    }
+                }
+            }
+            "ppt" -> {
+                pptSuffixType.forEach {
+                    fileTrackDao.getByType(it)?.run {
+                        f.addAll(this)
+                    }
+                }
+            }
+            "pdf" -> {
+                pdfSuffixType.forEach {
+                    fileTrackDao.getByType(it)?.run {
+                        f.addAll(this)
+                    }
+                }
+            }
+            "other" -> {
+                otherSuffixType.forEach {
+                    // 匹配文件
                     fileTrackDao.getByType(it)?.run {
                         f.addAll(this)
                     }
@@ -292,6 +346,14 @@ class MainViewModel : ViewModel() {
             apks.addAll(getFileByType("apk"))
             zips.clear()
             zips.addAll(getFileByType("zip"))
+            docs.clear()
+            docs.addAll(getFileByType("doc"))
+            ppts.clear()
+            ppts.addAll(getFileByType("ppt"))
+            pdfs.clear()
+            pdfs.addAll(getFileByType("pdf"))
+            others.clear()
+            others.addAll(getFileByType("other"))
 
             fileInfos.find {
                 it.type == "image"
@@ -311,6 +373,18 @@ class MainViewModel : ViewModel() {
             fileInfos.find {
                 it.type == "zip"
             }?.count = zips.size
+            fileInfos.find {
+                it.type == "doc"
+            }?.count = docs.size
+            fileInfos.find {
+                it.type == "ppt"
+            }?.count = ppts.size
+            fileInfos.find {
+                it.type == "pdf"
+            }?.count = pdfs.size
+            fileInfos.find {
+                it.type == "other"
+            }?.count = others.size
         }
         getAllFileJob?.invokeOnCompletion { throwable ->
             if (throwable == null) {

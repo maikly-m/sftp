@@ -22,9 +22,11 @@ import com.example.ftp.R
 import com.example.ftp.bean.ConnectInfo
 import com.example.ftp.databinding.FragmentServerSettingsBinding
 import com.example.ftp.utils.MySPUtil
+import com.example.ftp.utils.getLocalIpAddress
 import com.example.ftp.utils.grantCamera
 import com.example.ftp.utils.grantExternalStorage
 import com.example.ftp.utils.gson.GsonUtil
+import com.example.ftp.utils.isConnectedToWifi
 import com.example.ftp.utils.isIPAddress
 import com.example.ftp.utils.showToast
 import timber.log.Timber
@@ -139,6 +141,13 @@ class ServerSettingsFragment : Fragment() {
 
 
         binding.tvStart.setOnClickListener {
+            // 检测wifi连接
+            val connectWifi = isConnectedToWifi(requireContext())
+            val ip = getLocalIpAddress(requireContext())
+            if (!connectWifi || ip == "0.0.0.0"){
+                showToast("没有连接到wifi")
+                return@setOnClickListener
+            }
 
             var p = -1
             try {

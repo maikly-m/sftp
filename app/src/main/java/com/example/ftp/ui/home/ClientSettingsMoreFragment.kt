@@ -57,49 +57,108 @@ class ClientSettingsMoreFragment : Fragment() {
         )
         binding.etSavePath.setText(viewModel.etSavePath)
 
-        binding.tvSave.setOnClickListener {
-            if (isFullFolderNameValid(viewModel.etSavePath)){
-                if (viewModel.etSavePath == "/"){
-                    MySPUtil.getInstance().downloadSavePath = viewModel.etSavePath
-                    // 修改监听位置
-                    mainViewModel.resetFileObserver()
-                    showToast("已保存")
-                    return@setOnClickListener
+        // 替换闪烁的cursor
+        replaceCursorStyle(requireContext(), binding.etUploadPath)
+        binding.etUploadPath.addTextChangedListener(
+            beforeTextChanged = { charSequence: CharSequence?, i: Int, i1: Int, i2: Int -> },
+            onTextChanged = { charSequence: CharSequence?, i: Int, i1: Int, i2: Int -> },
+            afterTextChanged = {
+                it?.toString()?.run {
+                    viewModel.etUploadPath = this
                 }
-                val path: String
-                if (viewModel.etSavePath.first() == '/') {
-                    path = viewModel.etSavePath.substring(1)
-                } else {
-                    path = viewModel.etSavePath
-                }
+            }
+        )
+        binding.etUploadPath.setText(viewModel.etUploadPath)
 
-                val paths = path.split("/")
-                Timber.d("etSavePath ${viewModel.etSavePath}")
-                Timber.d("path ${path}")
-                Timber.d("paths it=${paths.size}")
-                paths.forEachIndexed { _, p ->
-                    Timber.d("paths it=${p}")
-                    isFolderNameValid(p).run {
-                        if (!this){
-                            showToast("路径不合法，请修改")
-                            return@setOnClickListener
-                        }
-                    }
+        binding.tvSave.setOnClickListener {
+            if (checkDownloadPath(viewModel)){
+                if (checkUploadPath(viewModel)){
+                    Timber.d("viewModel.etUploadPath ${viewModel.etUploadPath}")
                 }
-                if (paths.isEmpty()){
-                    showToast("路径不合法，请修改")
-                }else{
-                    MySPUtil.getInstance().downloadSavePath = viewModel.etSavePath
-                    // 修改监听位置
-                    mainViewModel.resetFileObserver()
-                    showToast("已保存")
-                }
-            }else{
-                showToast("路径不合法，请修改")
             }
         }
 
         return root
+    }
+
+    private fun checkUploadPath(viewModel: ClientSettingsMoreViewModel): Boolean{
+        if (isFullFolderNameValid(viewModel.etUploadPath)) {
+            if (viewModel.etUploadPath == "/") {
+                MySPUtil.getInstance().uploadSavePath = viewModel.etUploadPath
+                showToast("已保存")
+                return true
+            }
+            val path: String
+            if (viewModel.etUploadPath.first() == '/') {
+                path = viewModel.etUploadPath.substring(1)
+            } else {
+                path = viewModel.etUploadPath
+            }
+
+            val paths = path.split("/")
+            paths.forEachIndexed { _, p ->
+                Timber.d("paths it=${p}")
+                isFolderNameValid(p).run {
+                    if (!this) {
+                        showToast("上传路径不合法，请修改")
+                        return false
+                    }
+                }
+            }
+            if (paths.isEmpty()) {
+                showToast("上传路径不合法，请修改")
+            } else {
+                MySPUtil.getInstance().uploadSavePath = viewModel.etUploadPath
+                showToast("已保存")
+                return true
+            }
+        } else {
+            showToast("上传路径不合法，请修改")
+        }
+        return false
+
+    }
+
+    private fun checkDownloadPath(viewModel: ClientSettingsMoreViewModel): Boolean{
+        if (isFullFolderNameValid(viewModel.etSavePath)) {
+            if (viewModel.etSavePath == "/") {
+                MySPUtil.getInstance().downloadSavePath = viewModel.etSavePath
+                // 修改监听位置
+                mainViewModel.resetFileObserver()
+                return true
+            }
+            val path: String
+            if (viewModel.etSavePath.first() == '/') {
+                path = viewModel.etSavePath.substring(1)
+            } else {
+                path = viewModel.etSavePath
+            }
+
+            val paths = path.split("/")
+            Timber.d("etSavePath ${viewModel.etSavePath}")
+            Timber.d("path ${path}")
+            Timber.d("paths it=${paths.size}")
+            paths.forEachIndexed { _, p ->
+                Timber.d("paths it=${p}")
+                isFolderNameValid(p).run {
+                    if (!this) {
+                        showToast("下载路径不合法，请修改")
+                        return false
+                    }
+                }
+            }
+            if (paths.isEmpty()) {
+                showToast("下载路径不合法，请修改")
+            } else {
+                MySPUtil.getInstance().downloadSavePath = viewModel.etSavePath
+                // 修改监听位置
+                mainViewModel.resetFileObserver()
+                return true
+            }
+        } else {
+            showToast("下载路径不合法，请修改")
+        }
+        return false
     }
 
     override fun onDestroyView() {
