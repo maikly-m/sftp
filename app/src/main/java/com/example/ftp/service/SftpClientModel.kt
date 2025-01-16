@@ -1,19 +1,14 @@
 package com.example.ftp.service
 
 import android.text.TextUtils
-import autovaluegson.shaded.com.google.common.collect.ObjectArrays
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.provider.GetProvider
-import com.example.ftp.utils.showToast
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
 import com.jcraft.jsch.SftpException
 import com.jcraft.jsch.SftpProgressMonitor
-import com.jcraft.jsch.UserInfo
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import okio.use
 import org.greenrobot.eventbus.EventBus
 import timber.log.Timber
@@ -430,32 +425,4 @@ class SftpClientModel(val type: ClientType) {
         }
     }
 
-    inner class CustomUserInfo : UserInfo {
-        override fun getPassphrase(): String? {
-            return null
-        }
-
-        override fun getPassword(): String? {
-            return null
-        }
-
-        override fun promptPassword(message: String?): Boolean {
-            return false
-        }
-
-        override fun promptPassphrase(message: String?): Boolean {
-            return false
-        }
-
-        override fun promptYesNo(message: String?): Boolean {
-            // 通过返回 true 来接受主机的公钥
-            Timber.d("promptYesNo: ${message}")
-            return true  // 允许接受公钥
-        }
-
-        override fun showMessage(message: String?) {
-            // 用于显示消息
-            Timber.d("showMessage: ${message}")
-        }
-    }
 }

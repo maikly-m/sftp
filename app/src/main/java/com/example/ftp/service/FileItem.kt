@@ -6,4 +6,6 @@ sealed class ClientType {
     data object UploadClient : ClientType()
     data object DownloadClient : ClientType()
     data object OtherClient : ClientType()
+
+    data object PlayerClient : ClientType()
 }

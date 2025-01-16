@@ -2,11 +2,15 @@ import android.net.Uri
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.BaseDataSource
 import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.TransferListener
+import com.example.ftp.provider.GetProvider
+import com.example.ftp.service.CustomUserInfo
+import com.example.ftp.utils.ToastUtil
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
+import com.jcraft.jsch.UserInfo
 import timber.log.Timber
+import java.io.File
 import java.io.InputStream
 
 @UnstableApi
@@ -96,13 +100,33 @@ class SftpDataSource(
             val jsch = JSch()
             session = jsch.getSession(username, host, port)
             session!!.setPassword(password)
-            session!!.setConfig("StrictHostKeyChecking", "no")
+            // 关闭严格的主机密钥检查（只用于测试环境）no
+            // yes no ask
+            // session!!.setConfig("StrictHostKeyChecking", "no")
+            session!!.setConfig("StrictHostKeyChecking", "ask")
+            // 设置用户交互信息处理
+            session!!.userInfo = CustomUserInfo()
+            // 创建 KnownHosts 实例，设置自定义路径
+            val homeDir = "${GetProvider.get().context.filesDir}/user/home"
+            val fileDir = File(homeDir)
+            if (!fileDir.exists()) {
+                fileDir.mkdirs()
+            }
+            val known_hosts_path = "${homeDir}/known_hosts"
+            val known_host_file = File(known_hosts_path)
+            if (!known_host_file.exists() || known_host_file.isDirectory) {
+                known_host_file.createNewFile()
+            }
+            jsch.setKnownHosts(known_hosts_path)
+
             session!!.connect()
 
             val channel = session!!.openChannel("sftp") as ChannelSftp
             channel.connect()
             channelSftp = channel
         } catch (e: Exception) {
+            ToastUtil.tempSftpPlayerErrorToast = "连接服务器失败"
+            // EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(ClientType.PlayerClient, ""))
             throw RuntimeException("Error connecting to SFTP server", e)
         }
     }
@@ -111,6 +135,8 @@ class SftpDataSource(
             session?.disconnect()
             channelSftp?.disconnect()
         } catch (e: Exception) {
+            ToastUtil.tempSftpPlayerErrorToast = "服务器连接断开"
+            // EventBus.getDefault().post(ClientMessageEvent.SftpDisconnect(ClientType.PlayerClient, ""))
             throw RuntimeException("Error disconnect to SFTP server", e)
         }
     }

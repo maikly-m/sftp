@@ -2,8 +2,8 @@ package com.example.ftp.player
 
 import android.content.Context
 import android.net.Uri
+import android.text.TextUtils
 import androidx.annotation.OptIn
-import androidx.camera.core.impl.utils.ContextUtil.getApplicationContext
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -15,6 +15,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
+import com.example.ftp.utils.ToastUtil
 import com.example.ftp.utils.showToast
 import timber.log.Timber
 import java.io.IOException
@@ -73,7 +74,12 @@ fun playSftpVideo(
                         ExoPlaybackException.TYPE_SOURCE -> {
                             Timber.e("ExoPlayer", "Source error: ${error.sourceException.message}")
                             // 数据异常
-                            showToast("文件不存在或格式不支持")
+                            if (!TextUtils.isEmpty(ToastUtil.tempSftpPlayerErrorToast)) {
+                                showToast(ToastUtil.tempSftpPlayerErrorToast)
+                                ToastUtil.tempSftpPlayerErrorToast = ""
+                            } else {
+                                showToast("文件不存在或格式不支持")
+                            }
                             exoPlayer.seekToNextMediaItem()
 
                             handleSourceError(error.sourceException)

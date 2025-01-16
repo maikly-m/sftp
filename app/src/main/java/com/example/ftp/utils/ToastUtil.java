@@ -12,6 +12,7 @@ import com.example.ftp.databinding.LayoutToastBinding;
 public class ToastUtil {
 
     private static Toast sToast;
+    public static String tempSftpPlayerErrorToast = "";
 
     public static void showToast(Context context, int strId) {
         showToast(context, context.getResources().getString(strId));

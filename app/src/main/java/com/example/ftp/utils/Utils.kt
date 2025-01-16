@@ -56,6 +56,7 @@ import com.example.ftp.R
 import com.example.ftp.databinding.DialogCustomAlertBinding
 import com.example.ftp.databinding.DialogCustomFileInfoBinding
 import com.example.ftp.databinding.DialogCustomInputBinding
+import com.example.ftp.databinding.DialogCustomLoadingTempFileBinding
 import com.example.ftp.databinding.DialogCustomPlayerBinding
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.room.bean.FileTrack
@@ -697,6 +698,40 @@ fun isIPAddress(address: String): Boolean {
     return ipv4Regex.matches(address) || ipv6Regex.matches(address)
 }
 
+fun showCustomLoadingDialog(context: Context, square: Boolean, title: String, block: (binding: DialogCustomLoadingTempFileBinding) -> Unit): AlertDialog? {
+    // 加载自定义布局
+    val binding = DialogCustomLoadingTempFileBinding.inflate(LayoutInflater.from(context), null, false)
+    val dialogView = binding.root
+
+    binding.tvTitle.text = title
+
+    // 创建 AlertDialog
+    val alertDialog = AlertDialog.Builder(context)
+        .setView(dialogView)
+        .setCancelable(false) // 点击外部是否可以取消
+        .create()
+    block(binding)
+    // 显示对话框
+    alertDialog.show()
+
+    // 设置对话框的宽高
+    if (square) {
+        val w = DisplayUtils.getScreenWidth(alertDialog.context) * 1 / 4
+        alertDialog.window?.setLayout(w, w)
+    } else {
+        val w = DisplayUtils.getScreenWidth(alertDialog.context) * 3 / 4
+        alertDialog.window?.setLayout(w, WindowManager.LayoutParams.WRAP_CONTENT)
+    }
+    // 调整对话框透明度
+    alertDialog.window?.attributes = alertDialog.window?.attributes?.apply {
+        alpha = 1f // 对话框本身的透明度
+    }
+    alertDialog.window?.setDimAmount(0.4f) // 背景模糊透明度
+    // 设置对话框背景为圆角 drawable
+    alertDialog.window?.setBackgroundDrawableResource(R.drawable.rounded_white_background_16)
+    return alertDialog
+}
+
 fun showCustomPlayerDialog(context: Context, title: String, block: (binding: DialogCustomPlayerBinding) -> Unit): AlertDialog? {
     // 加载自定义布局
     val binding = DialogCustomPlayerBinding.inflate(LayoutInflater.from(context), null, false)
@@ -1306,7 +1341,7 @@ fun openFileWithSystemApp(context: Context, file: File) {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // 授予临时读取权限
         }
-
+        Timber.d("openFileWithSystemApp ..")
         // 启动系统应用
         context.startActivity(intent)
     } catch (e: Exception) {

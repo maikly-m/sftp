@@ -88,7 +88,6 @@ class SftpClientService : Service() {
         Timber.d("upload finish")
     }
 
-    // 分离上传
     suspend fun other(serverIp: String, port: Int, user: String, password: String, block: suspend (model: SftpClientModel)->Unit): Unit {
         val otherModel = SftpClientModel(ClientType.OtherClient)
         otherModel.connect(serverIp, port, user, password)
