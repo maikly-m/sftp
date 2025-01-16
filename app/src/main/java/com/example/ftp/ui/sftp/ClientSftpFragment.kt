@@ -114,13 +114,17 @@ class ClientSftpFragment : Fragment() {
 
         // back
         binding.layoutTitleFile.ivBack.setOnClickListener {
-            val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive?:false
-            val downloadActive = viewModel.getDownloadFileJob()?.isActive?:false
-            if (uploadActive && downloadActive){
+            val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive ?: false
+            val downloadActive = viewModel.getDownloadFileJob()?.isActive ?: false
+            if (uploadActive && downloadActive) {
                 // 拦截任务
-                showCustomAlertDialog(requireContext(), "提示", "正在上传和下载，是否退出", {
-                    // cancel
-                }){
+                showCustomAlertDialog(
+                    requireContext(),
+                    GetProvider.get().context.getString(R.string.text_tip),
+                    GetProvider.get().context.getString(R.string.text_downloading_uploading_and_exit_or_not),
+                    {
+                        // cancel
+                    }) {
                     // ok
                     // 关闭任务
                     viewModel.uploadFileInputStreamJobCancel()
@@ -128,22 +132,30 @@ class ClientSftpFragment : Fragment() {
                     findNavController().popBackStack()
                 }
                 return@setOnClickListener
-            }else if (uploadActive) {
+            } else if (uploadActive) {
                 // 拦截任务
-                showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
-                    // cancel
-                }){
+                showCustomAlertDialog(
+                    requireContext(),
+                    GetProvider.get().context.getString(R.string.text_tip),
+                    GetProvider.get().context.getString(R.string.text_uploading_and_exit_or_not),
+                    {
+                        // cancel
+                    }) {
                     // ok
                     // 关闭任务
                     viewModel.uploadFileInputStreamJobCancel()
                     findNavController().popBackStack()
                 }
                 return@setOnClickListener
-            }else if (downloadActive) {
+            } else if (downloadActive) {
                 // 拦截任务
-                showCustomAlertDialog(requireContext(), "提示", "正在下载，是否退出", {
-                    // cancel
-                }){
+                showCustomAlertDialog(
+                    requireContext(),
+                    GetProvider.get().context.getString(R.string.text_tip),
+                    GetProvider.get().context.getString(R.string.text_downloading_and_exit_or_not),
+                    {
+                        // cancel
+                    }) {
                     // ok
                     // 关闭任务
                     viewModel.downloadFileJobCancel()
@@ -158,17 +170,17 @@ class ClientSftpFragment : Fragment() {
             // show select-all
             viewModel.showMultiSelectIcon.value = true
             viewModel.showSelectAll.value = false
-            binding.layoutTitleFile.tvSelectAll.text = "全选"
+            binding.layoutTitleFile.tvSelectAll.text = getString(R.string.text_all_select)
         }
 
         binding.layoutTitleFile.tvSelectAll.setOnClickListener {
             //select-all
             if (viewModel.showSelectAll.value == false) {
                 viewModel.showSelectAll.value = true
-                binding.layoutTitleFile.tvSelectAll.text = "取消全选"
+                binding.layoutTitleFile.tvSelectAll.text = getString(R.string.text_all_select_cancel)
             } else {
                 viewModel.showSelectAll.value = false
-                binding.layoutTitleFile.tvSelectAll.text = "全选"
+                binding.layoutTitleFile.tvSelectAll.text = getString(R.string.text_all_select)
             }
         }
 
@@ -189,7 +201,8 @@ class ClientSftpFragment : Fragment() {
             showSortPopupWindow(it)
             binding.layoutTitleFile.ivSort.run {
                 // 创建旋转动画，参数是旋转角度
-                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation + 180f)
+                val rotationAnimator =
+                    ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation + 180f)
                 rotationAnimator.duration = 300
                 rotationAnimator.start()
             }
@@ -217,13 +230,17 @@ class ClientSftpFragment : Fragment() {
                 )
             ) {
 
-                val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive?:false
-                val downloadActive = viewModel.getDownloadFileJob()?.isActive?:false
-                if (uploadActive && downloadActive){
+                val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive ?: false
+                val downloadActive = viewModel.getDownloadFileJob()?.isActive ?: false
+                if (uploadActive && downloadActive) {
                     // 拦截任务
-                    showCustomAlertDialog(requireContext(), "提示", "正在上传和下载，是否退出", {
-                        // cancel
-                    }){
+                    showCustomAlertDialog(
+                        requireContext(),
+                        getString(R.string.text_tip),
+                        getString(R.string.text_downloading_uploading_and_exit_or_not),
+                        {
+                            // cancel
+                        }) {
                         // ok
                         // 关闭任务
                         viewModel.uploadFileInputStreamJobCancel()
@@ -231,22 +248,30 @@ class ClientSftpFragment : Fragment() {
                         findNavController().popBackStack()
                     }
                     return@addCallback
-                }else if (uploadActive) {
+                } else if (uploadActive) {
                     // 拦截任务
-                    showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
-                        // cancel
-                    }){
+                    showCustomAlertDialog(
+                        requireContext(),
+                        getString(R.string.text_tip),
+                        getString(R.string.text_uploading_and_exit_or_not),
+                        {
+                            // cancel
+                        }) {
                         // ok
                         // 关闭任务
                         viewModel.uploadFileInputStreamJobCancel()
                         findNavController().popBackStack()
                     }
                     return@addCallback
-                }else if (downloadActive) {
+                } else if (downloadActive) {
                     // 拦截任务
-                    showCustomAlertDialog(requireContext(), "提示", "正在下载，是否退出", {
-                        // cancel
-                    }){
+                    showCustomAlertDialog(
+                        requireContext(),
+                        getString(R.string.text_tip),
+                        getString(R.string.text_downloading_and_exit_or_not),
+                        {
+                            // cancel
+                        }) {
                         // ok
                         // 关闭任务
                         viewModel.downloadFileJobCancel()
@@ -290,10 +315,12 @@ class ClientSftpFragment : Fragment() {
                     binding.layoutTitleFile.tvName.text = "sdcard"
                 } else if (p.endsWith("/")) {
                     nameFileAdapter.items.addAll(p.removeSuffix("/").split("/"))
-                    binding.layoutTitleFile.tvName.text = nameFileAdapter.items[nameFileAdapter.items.size-1]
+                    binding.layoutTitleFile.tvName.text =
+                        nameFileAdapter.items[nameFileAdapter.items.size - 1]
                 } else {
                     nameFileAdapter.items.addAll(p.split("/"))
-                    binding.layoutTitleFile.tvName.text = nameFileAdapter.items[nameFileAdapter.items.size-1]
+                    binding.layoutTitleFile.tvName.text =
+                        nameFileAdapter.items[nameFileAdapter.items.size - 1]
                 }
                 nameFileAdapter.notifyDataSetChanged()
             } else {
@@ -312,20 +339,20 @@ class ClientSftpFragment : Fragment() {
 
         viewModel.uploadFileInputStream.observe(viewLifecycleOwner) {
             if (it == 1) {
-                showToast("上传成功")
+                showToast(getString(R.string.text_upload_success))
                 // 刷新列表
                 viewModel.listFile(sftpClientService, viewModel.getCurrentFilePath())
             } else {
-                showToast("上传失败")
+                showToast(getString(R.string.text_upload_fail),)
             }
 
             binding.cvLlSimpleUp.visibility = View.GONE
-            binding.cvLlSimpleUpTv.text = "传输"
+            binding.cvLlSimpleUpTv.text = getString(R.string.text_transfer)
             binding.tvTransferUpCount.text = "0/0"
             binding.tvTransferUpSize.text = "0/0"
             binding.tvTransferUpProgress.text = "0%"
             binding.cvClUp.visibility = View.GONE
-            if (binding.cvClDown.visibility == View.GONE){
+            if (binding.cvClDown.visibility == View.GONE) {
                 binding.cvLlSimpleTip.visibility = View.VISIBLE
                 binding.cvClTip.visibility = View.VISIBLE
             }
@@ -334,42 +361,43 @@ class ClientSftpFragment : Fragment() {
         viewModel.uploadFileProgress.observe(viewLifecycleOwner) {
             if (it.progress >= 0f) {
                 //show
-                binding.cvLlSimpleUpTv.text =  "${it.progress.format(0)}%"
+                binding.cvLlSimpleUpTv.text = "${it.progress.format(0)}%"
 
-                binding.tvTransferUpCount.text = "${ it.currentCount}/${it.count}"
-                binding.tvTransferUpSize.text = "${it.currentFileSizes.toReadableFileSizeFormat1()}/${it.fileSizes.toReadableFileSizeFormat1()}"
+                binding.tvTransferUpCount.text = "${it.currentCount}/${it.count}"
+                binding.tvTransferUpSize.text =
+                    "${it.currentFileSizes.toReadableFileSizeFormat1()}/${it.fileSizes.toReadableFileSizeFormat1()}"
                 binding.tvTransferUpProgress.text = binding.cvLlSimpleUpTv.text
                 binding.pbTransferUpProgress.progress = it.progress.roundToInt()
 
-            } else if (it.progress == -1f){
+            } else if (it.progress == -1f) {
                 // start
-                binding.cvLlSimpleUpTv.text =  "0%"
+                binding.cvLlSimpleUpTv.text = "0%"
                 binding.cvClUp.visibility = View.VISIBLE
                 binding.cvClTip.visibility = View.GONE
                 binding.pbTransferUpProgress.progress = it.progress.roundToInt()
                 binding.cvLlSimpleUp.visibility = View.VISIBLE
                 binding.cvLlSimpleTip.visibility = View.GONE
-            }else{
+            } else {
 
             }
         }
 
         viewModel.downloadFile.observe(viewLifecycleOwner) {
             if (it == 1) {
-                showToast("下载成功")
+                showToast(getString(R.string.text_download_success))
                 // 刷新列表
             } else {
-                showToast("下载失败")
+                showToast(getString(R.string.text_download_fail),)
             }
 
 
             binding.cvLlSimpleDown.visibility = View.GONE
-            binding.cvLlSimpleDownTv.text = "传输"
+            binding.cvLlSimpleDownTv.text = getString(R.string.text_tip)
             binding.tvTransferDownCount.text = "0/0"
             binding.tvTransferDownSize.text = "0/0"
             binding.tvTransferDownProgress.text = "0%"
             binding.cvClDown.visibility = View.GONE
-            if (binding.cvClUp.visibility == View.GONE){
+            if (binding.cvClUp.visibility == View.GONE) {
                 binding.cvLlSimpleTip.visibility = View.VISIBLE
                 binding.cvClTip.visibility = View.VISIBLE
             }
@@ -380,22 +408,23 @@ class ClientSftpFragment : Fragment() {
         viewModel.downloadFileProgress.observe(viewLifecycleOwner) {
             if (it.progress >= 0f) {
                 //show
-                binding.cvLlSimpleDownTv.text =  "${it.progress.format(0)}%"
+                binding.cvLlSimpleDownTv.text = "${it.progress.format(0)}%"
 
-                binding.tvTransferDownCount.text = "${ it.currentCount}/${it.count}"
-                binding.tvTransferDownSize.text = "${it.currentFileSizes.toReadableFileSizeFormat1()}/${it.fileSizes.toReadableFileSizeFormat1()}"
+                binding.tvTransferDownCount.text = "${it.currentCount}/${it.count}"
+                binding.tvTransferDownSize.text =
+                    "${it.currentFileSizes.toReadableFileSizeFormat1()}/${it.fileSizes.toReadableFileSizeFormat1()}"
                 binding.tvTransferDownProgress.text = binding.cvLlSimpleDownTv.text
                 binding.pbTransferDownProgress.progress = it.progress.roundToInt()
 
-            } else if (it.progress == -1f){
+            } else if (it.progress == -1f) {
                 // start
-                binding.cvLlSimpleDownTv.text =  "0%"
+                binding.cvLlSimpleDownTv.text = "0%"
                 binding.cvClDown.visibility = View.VISIBLE
                 binding.cvClTip.visibility = View.GONE
                 binding.pbTransferDownProgress.progress = it.progress.roundToInt()
                 binding.cvLlSimpleDown.visibility = View.VISIBLE
                 binding.cvLlSimpleTip.visibility = View.GONE
-            }else{
+            } else {
 
             }
         }
@@ -404,7 +433,7 @@ class ClientSftpFragment : Fragment() {
             if (it == 1) {
                 //showToast("删除成功")
             } else {
-                showToast("删除失败")
+                showToast(getString(R.string.text_del_success))
             }
             // 刷新列表
             viewModel.listFile(sftpClientService, viewModel.getCurrentFilePath())
@@ -474,7 +503,7 @@ class ClientSftpFragment : Fragment() {
         }
 
         viewModel.changeSelectType.observe(viewLifecycleOwner) {
-            if (it < viewModel.sortTypes.size){
+            if (it < viewModel.sortTypes.size) {
                 binding.layoutTitleFile.tvSort.text = viewModel.sortTypes[it]
                 MySPUtil.getInstance().serverSortType = it
                 //show
@@ -528,15 +557,19 @@ class ClientSftpFragment : Fragment() {
                     files.add(listFileAdapter.items[index])
                 }
             }
-            if (files.size == 0){
-                showToast("至少选择一个文件删除")
+            if (files.size == 0) {
+                showToast(getString(R.string.text_del_one_file_at_least))
                 return@setOnClickListener
             }
             // 确认
-            showCustomAlertDialog(requireContext(), "提示", "是否删除?", {
-                // cancel
-                viewModel.showMultiSelectIcon.value = false
-            }){
+            showCustomAlertDialog(
+                requireContext(),
+                GetProvider.get().context.getString(R.string.text_tip),
+                getString(R.string.text_del_or_not),
+                {
+                    // cancel
+                    viewModel.showMultiSelectIcon.value = false
+                }) {
                 viewModel.deleteFiles(sftpClientService, files)
             }
             binding.layoutBottomSelect.container.visibility = View.GONE
@@ -551,63 +584,68 @@ class ClientSftpFragment : Fragment() {
                 }
             }
             if (files.size == 1) {
-                showCustomInputDialog(requireContext(), "重命名", "请输入名字", {
+                showCustomInputDialog(requireContext(), getString(R.string.text_rename), getString(R.string.text_input_name), {
 
-                }){
-                    if (TextUtils.isEmpty(it)){
-                        showToast("请输入名字")
+                }) {
+                    if (TextUtils.isEmpty(it)) {
+                        showToast(getString(R.string.text_input_name))
                         false
-                    }else{
+                    } else {
                         // 检验是否合规
                         if (files[0].attrs.isReg) {
                             // 文件
-                            if (!isFileNameValid(it)){
-                                showToast("名字非法")
+                            if (!isFileNameValid(it)) {
+                                showToast(getString(R.string.text_name_illegal))
                                 return@showCustomInputDialog false
                             }
                             viewModel.renameFile(sftpClientService, files[0], it)
                             true
-                        } else if(files[0].attrs.isDir){
+                        } else if (files[0].attrs.isDir) {
                             // 文件夹
-                            if (!isFolderNameValid(it)){
-                                showToast("名字非法")
+                            if (!isFolderNameValid(it)) {
+                                showToast(getString(R.string.text_name_illegal))
                                 return@showCustomInputDialog false
                             }
                             viewModel.renameFile(sftpClientService, files[0], it)
                             true
-                        }else{
+                        } else {
                             true
                         }
                     }
                 }
 
-            } else if (files.size == 0){
-                showToast("重命名需要选择一个文件")
-            }else{
-                showToast("重命名只能选择一个文件")
+            } else if (files.size == 0) {
+                showToast(getString(R.string.text_rename_need_select_one_file))
+            } else {
+                showToast(getString(R.string.text_rename_only_one_file))
             }
         }
 
         binding.cvTransfer.setOnClickListener {
             // todo
-            if (transferAnimator?.isRunning == true){
+            if (transferAnimator?.isRunning == true) {
                 return@setOnClickListener
             }
 
             if (binding.cvLlSimple.visibility == View.VISIBLE) {
                 // 动画切换
-                animateWidth(binding.cvTransfer, DisplayUtils.dp2px(requireContext(), 70f),
-                    DisplayUtils.dp2px(requireContext(), 240f))
+                animateWidth(
+                    binding.cvTransfer, DisplayUtils.dp2px(requireContext(), 70f),
+                    DisplayUtils.dp2px(requireContext(), 240f)
+                )
                 binding.cvLlSimple.visibility = View.GONE
                 binding.cvLlExpand.visibility = View.VISIBLE
             } else {
-                animateWidth(binding.cvTransfer, DisplayUtils.dp2px(requireContext(), 240f),
-                    DisplayUtils.dp2px(requireContext(), 70f))
+                animateWidth(
+                    binding.cvTransfer, DisplayUtils.dp2px(requireContext(), 240f),
+                    DisplayUtils.dp2px(requireContext(), 70f)
+                )
                 binding.cvLlSimple.visibility = View.VISIBLE
                 binding.cvLlExpand.visibility = View.GONE
             }
         }
     }
+
     private fun animateWidth(view: View, startWidth: Int, endWidth: Int) {
         transferAnimator = ValueAnimator.ofInt(startWidth, endWidth)
         transferAnimator?.duration = 300 // 动画持续时间 (毫秒)
@@ -645,17 +683,18 @@ class ClientSftpFragment : Fragment() {
         }
 
         popupView.btnMkdir.setOnClickListener {
-            showCustomInputDialog(requireContext(), "文件夹", "请输入名字", {
+            showCustomInputDialog(requireContext(), getString(R.string.text_dir),
+                getString(R.string.text_input_name), {
 
-            }){
-                if (TextUtils.isEmpty(it)){
-                    showToast("请输入名字")
+                }) {
+                if (TextUtils.isEmpty(it)) {
+                    showToast(getString(R.string.text_input_name))
                     false
-                }else{
+                } else {
                     // 检验是否合规
                     // 文件夹
-                    if (!isFolderNameValid(it)){
-                        showToast("名字非法")
+                    if (!isFolderNameValid(it)) {
+                        showToast(getString(R.string.text_name_illegal))
                         return@showCustomInputDialog false
                     }
                     viewModel.mkdir(sftpClientService, it)
@@ -669,9 +708,14 @@ class ClientSftpFragment : Fragment() {
 
         }
         // Show the PopupWindow
-        popupWindow?.showAsDropDown(anchorView,
-            (DisplayUtils.getScreenWidth(GetProvider.get().context) -DisplayUtils.dp2px(GetProvider.get().context, 160f)) /2,
-            -DisplayUtils.dp2px(GetProvider.get().context, 80f)) // Adjust position relative to the anchor view
+        popupWindow?.showAsDropDown(
+            anchorView,
+            (DisplayUtils.getScreenWidth(GetProvider.get().context) - DisplayUtils.dp2px(
+                GetProvider.get().context,
+                160f
+            )) / 2,
+            -DisplayUtils.dp2px(GetProvider.get().context, 80f)
+        ) // Adjust position relative to the anchor view
 
         // Alternatively, use showAtLocation for custom positioning
         // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
@@ -706,13 +750,18 @@ class ClientSftpFragment : Fragment() {
         popupWindow?.setOnDismissListener {
             binding.layoutTitleFile.ivSort.run {
                 // 创建旋转动画，参数是旋转角度
-                val rotationAnimator = ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation - 180f)
+                val rotationAnimator =
+                    ObjectAnimator.ofFloat(this, "rotation", this.rotation, this.rotation - 180f)
                 rotationAnimator.duration = 300
                 rotationAnimator.start()
             }
         }
         // Show the PopupWindow
-        popupWindow?.showAsDropDown(anchorView, 0, 10) // Adjust position relative to the anchor view
+        popupWindow?.showAsDropDown(
+            anchorView,
+            0,
+            10
+        ) // Adjust position relative to the anchor view
 
         // Alternatively, use showAtLocation for custom positioning
         // popupWindow.showAtLocation(anchorView, Gravity.CENTER, 0, 0)
@@ -768,13 +817,13 @@ class ClientSftpFragment : Fragment() {
             is ClientMessageEvent.SftpConnected -> {
                 Timber.d("SftpConnected ..")
                 // list root dir
-                if (event.clientType is ClientType.BaseClient){
+                if (event.clientType is ClientType.BaseClient) {
                     viewModel.listFile(sftpClientService, "/")
                 }
             }
 
             is ClientMessageEvent.SftpConnectFail -> {
-                if (event.clientType is ClientType.BaseClient){
+                if (event.clientType is ClientType.BaseClient) {
                     showToast(event.message)
                 }
             }
@@ -782,6 +831,7 @@ class ClientSftpFragment : Fragment() {
             is ClientMessageEvent.SftpDisconnect -> {
 
             }
+
             is ClientMessageEvent.UploadFileList -> {
                 viewModel.uploadLocalFiles(sftpClientService, event.currentPath, event.list)
             }
@@ -865,7 +915,7 @@ class ClientSftpFragment : Fragment() {
                                 binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                             }
                         }
-                        binding.cl.setOnLongClickListener {true}
+                        binding.cl.setOnLongClickListener { true }
                     } else {
                         binding.ivSelect.visibility = View.GONE
                         binding.cl.setOnClickListener {
@@ -883,9 +933,15 @@ class ClientSftpFragment : Fragment() {
                 } else {
                     if (item.attrs.isReg) {
                         // 加上文件大小
-                        binding.tvTime.text = binding.tvTime.text.toString() + "   ${item.attrs.size.toReadableFileSize()}"
+                        binding.tvTime.text =
+                            binding.tvTime.text.toString() + "   ${item.attrs.size.toReadableFileSize()}"
                     }
-                    binding.ivIcon.setImageDrawable(getIcon4File(GetProvider.get().context, item.filename))
+                    binding.ivIcon.setImageDrawable(
+                        getIcon4File(
+                            GetProvider.get().context,
+                            item.filename
+                        )
+                    )
                     if (viewModel.showMultiSelectIcon.value == true) {
                         binding.ivSelect.visibility = View.VISIBLE
                         binding.cl.setOnClickListener {
@@ -896,32 +952,48 @@ class ClientSftpFragment : Fragment() {
                                 binding.ivSelect.setImageResource(R.drawable.svg_unselect_icon)
                             }
                         }
-                        binding.cl.setOnLongClickListener {true}
+                        binding.cl.setOnLongClickListener { true }
                     } else {
                         binding.ivSelect.visibility = View.GONE
                         var d: AlertDialog? = null
                         var d1: AlertDialog? = null
                         val pp = adapterPosition
                         binding.cl.setOnClickListener {
-                            d = showCustomFileInfoDialog(requireContext(), "文件信息"){ b ->
-                                b.ivName.setImageDrawable(getIcon4File(GetProvider.get().context, item.filename))
+                            d = showCustomFileInfoDialog(
+                                requireContext(),
+                                getString(R.string.text_file_info)
+                            ) { b ->
+                                b.ivName.setImageDrawable(
+                                    getIcon4File(
+                                        GetProvider.get().context,
+                                        item.filename
+                                    )
+                                )
                                 b.tvName.text = item.filename
                                 val extend = item.filename.substringAfterLast('.', "").lowercase()
-                                if (!TextUtils.isEmpty(extend)){
+                                if (!TextUtils.isEmpty(extend)) {
                                     b.tvType.text = extend
                                 }
-                                b.tvTime.text = formatTimeWithSimpleDateFormat(item.attrs.mTime * 1000L)
+                                b.tvTime.text =
+                                    formatTimeWithSimpleDateFormat(item.attrs.mTime * 1000L)
                                 b.tvSize.text = item.attrs.size.toReadableFileSize()
                                 // 判断类型显示是否打开
                                 val info = MySPUtil.getInstance().clientConnectInfo
-                                val path = normalizeFilePath(viewModel.getCurrentFilePath()+"/"+item.filename)
-                                val media = musicSuffixType.contains(extend) || videoSuffixType.contains(extend)
-                                if (media){
+                                val path =
+                                    normalizeFilePath(viewModel.getCurrentFilePath() + "/" + item.filename)
+                                val media =
+                                    musicSuffixType.contains(extend) || videoSuffixType.contains(
+                                        extend
+                                    )
+                                if (media) {
                                     b.llOpen.visibility = View.VISIBLE
                                     b.btnOpen.setOnClickListener {
                                         d?.dismiss()
                                         // test
-                                        d1 = showCustomPlayerDialog(requireContext(), item.filename){ b ->
+                                        d1 = showCustomPlayerDialog(
+                                            requireContext(),
+                                            item.filename
+                                        ) { b ->
                                             Timber.d("path =${path}")
                                             val player = playSftpVideo(
                                                 context = requireContext(),
@@ -930,7 +1002,7 @@ class ClientSftpFragment : Fragment() {
                                                 sftpPort = info.port,
                                                 sftpUsername = info.name,
                                                 sftpPassword = info.pw,
-                                                videoPath = MutableList(1){path}
+                                                videoPath = MutableList(1) { path }
                                             )
                                             // 按照类型显示模式
                                             if (extend in musicSuffixType) {
@@ -951,19 +1023,28 @@ class ClientSftpFragment : Fragment() {
                                                 // add items
                                                 val playList = ArrayList<String>()
                                                 items.forEachIndexed { index, lsEntry ->
-                                                    if (lsEntry.attrs.isReg){
-                                                        if (musicSuffixType.contains(extend) || videoSuffixType.contains(extend)){
-                                                            (viewModel.getCurrentFilePath()+"/"+ lsEntry.filename).run {
+                                                    if (lsEntry.attrs.isReg) {
+                                                        if (musicSuffixType.contains(extend) || videoSuffixType.contains(
+                                                                extend
+                                                            )
+                                                        ) {
+                                                            (viewModel.getCurrentFilePath() + "/" + lsEntry.filename).run {
                                                                 playList.add(normalizeFilePath(this))
                                                             }
                                                         }
                                                     }
                                                 }
 
-                                                Intent(requireActivity(), FullPlayerActivity::class.java).apply {
+                                                Intent(
+                                                    requireActivity(),
+                                                    FullPlayerActivity::class.java
+                                                ).apply {
                                                     val bundle = Bundle()
                                                     bundle.putInt("index", playList.indexOf(path))
-                                                    bundle.putLong("seek",  player.currentPosition)//ms
+                                                    bundle.putLong(
+                                                        "seek",
+                                                        player.currentPosition
+                                                    )//ms
                                                     bundle.putStringArrayList("playList", playList)
                                                     putExtras(bundle)
                                                     startActivity(this)
@@ -980,16 +1061,19 @@ class ClientSftpFragment : Fragment() {
                                                             // Player 处于空闲状态
                                                             Timber.d("ExoPlayer is idle")
                                                         }
+
                                                         Player.STATE_BUFFERING -> {
                                                             // Player 正在缓冲
                                                             b.clLoading.visibility = View.VISIBLE
                                                             Timber.d("ExoPlayer is buffering")
                                                         }
+
                                                         Player.STATE_READY -> {
                                                             // Player 已准备好，可能会开始播放
                                                             b.clLoading.visibility = View.GONE
                                                             Timber.d("ExoPlayer is ready")
                                                         }
+
                                                         Player.STATE_ENDED -> {
                                                             b.clLoading.visibility = View.GONE
                                                             // 播放结束
@@ -1011,25 +1095,41 @@ class ClientSftpFragment : Fragment() {
                                             })
                                         }
                                     }
-                                }else{
+                                } else {
                                     b.llOpen.visibility = View.VISIBLE
                                     // 下载后打开
                                     b.btnOpen.setOnClickListener {
-                                        if (item.attrs.size > 10*1024*1024){
+                                        if (item.attrs.size > 10 * 1024 * 1024) {
                                             // 文件于10M就提示
                                             d?.dismiss()
-                                            showCustomAlertDialog(requireContext(), "提示", "文件较大，是否等待加载后再打开", {
-                                                // cancel
-                                            }){
+                                            showCustomAlertDialog(
+                                                requireContext(),
+                                                GetProvider.get().context.getString(R.string.text_tip),
+                                                getString(R.string.text_file_large_for_open_or_nor),
+                                                {
+                                                    // cancel
+                                                }) {
                                                 // ok
                                                 // loading
                                                 // 开始下载
-                                                showLoadingTempFileDialog(info, extend, item, path, true)
+                                                showLoadingTempFileDialog(
+                                                    info,
+                                                    extend,
+                                                    item,
+                                                    path,
+                                                    true
+                                                )
                                             }
-                                        }else{
+                                        } else {
                                             d?.dismiss()
                                             // loading
-                                            showLoadingTempFileDialog(info, extend, item, path, false)
+                                            showLoadingTempFileDialog(
+                                                info,
+                                                extend,
+                                                item,
+                                                path,
+                                                false
+                                            )
                                         }
                                     }
 
@@ -1076,7 +1176,10 @@ class ClientSftpFragment : Fragment() {
         path: String,
         showProgress: Boolean
     ) {
-        loadingTempFileDialog = showCustomLoadingDialog(requireContext(), !showProgress, "下载中") { b ->
+        loadingTempFileDialog = showCustomLoadingDialog(
+            requireContext(), !showProgress,
+            getString(R.string.text_downloading)
+        ) { b ->
             TempFileDownload(
                 host = info.ip,
                 port = info.port,
@@ -1091,7 +1194,7 @@ class ClientSftpFragment : Fragment() {
                     b.clProgress.visibility = View.GONE
                 }
                 // 缓存目录
-               val tempDir = normalizeFilePath("${requireContext().cacheDir}/temp_file")
+                val tempDir = normalizeFilePath("${requireContext().cacheDir}/temp_file")
                 deleteDirectory(tempDir)
                 ensureLocalDirectoryExists(tempDir)
                 val f = File(tempDir, "${System.currentTimeMillis()}.${extend}")
@@ -1152,11 +1255,11 @@ class ClientSftpFragment : Fragment() {
                 }
                 job.invokeOnCompletion { throwable ->
                     loadingTempFileDialog?.dismiss()
-                    if (throwable == null){
+                    if (throwable == null) {
                         // 完成,打开文件
                         openFileWithSystemApp(requireContext(), f)
-                    }else{
-                        showToast("下载失败")
+                    } else {
+                        showToast(getString(R.string.text_download_fail))
                     }
                 }
 
@@ -1178,11 +1281,11 @@ class ClientSftpFragment : Fragment() {
                     binding.ll.post {
                         notifyDataSetChanged()
                     }
-                    binding.ll.postDelayed({popupWindow?.dismiss()},100)
+                    binding.ll.postDelayed({ popupWindow?.dismiss() }, 100)
                 }
                 if (viewModel.changeSelectType.value == adapterPosition) {
                     binding.tvName.setTextColor(Color.BLUE)
-                }else{
+                } else {
                     binding.tvName.setTextColor(Color.BLACK)
                 }
 

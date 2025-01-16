@@ -2,13 +2,13 @@ import android.net.Uri
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.BaseDataSource
 import androidx.media3.datasource.DataSpec
+import com.example.ftp.R
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.service.CustomUserInfo
 import com.example.ftp.utils.ToastUtil
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
-import com.jcraft.jsch.UserInfo
 import timber.log.Timber
 import java.io.File
 import java.io.InputStream
@@ -125,7 +125,8 @@ class SftpDataSource(
             channel.connect()
             channelSftp = channel
         } catch (e: Exception) {
-            ToastUtil.tempSftpPlayerErrorToast = "连接服务器失败"
+            ToastUtil.tempSftpPlayerErrorToast =
+                GetProvider.get().context.getString(R.string.text_fail_to_connect_server)
             // EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(ClientType.PlayerClient, ""))
             throw RuntimeException("Error connecting to SFTP server", e)
         }
@@ -135,7 +136,7 @@ class SftpDataSource(
             session?.disconnect()
             channelSftp?.disconnect()
         } catch (e: Exception) {
-            ToastUtil.tempSftpPlayerErrorToast = "服务器连接断开"
+            ToastUtil.tempSftpPlayerErrorToast = GetProvider.get().context.getString(R.string.text_disconnect_server)
             // EventBus.getDefault().post(ClientMessageEvent.SftpDisconnect(ClientType.PlayerClient, ""))
             throw RuntimeException("Error disconnect to SFTP server", e)
         }

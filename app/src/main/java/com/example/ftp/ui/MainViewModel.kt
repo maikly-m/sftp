@@ -65,17 +65,18 @@ class MainViewModel : ViewModel() {
 
 
     val fileInfos = mutableListOf(
-        FileInfo("image", "图片", 0, R.drawable.svg_image_icon),
-        FileInfo("video", "视频", 0, R.drawable.svg_media_icon),
-        FileInfo("music", "音乐", 0, R.drawable.svg_music_icon),
-        FileInfo("text", "文本", 0, R.drawable.svg_text_icon),
-        FileInfo("apk", "APK", 0, R.drawable.svg_apk_icon),
-        FileInfo("zip", "压缩包", 0, R.drawable.svg_zip_icon),
-        FileInfo("doc", "DOC", 0, R.drawable.svg_word_icon),
-        FileInfo("exc", "EXC", 0, R.drawable.svg_excel_icon),
-        FileInfo("ppt", "PPT", 0, R.drawable.svg_ppt_icon),
-        FileInfo("pdf", "PDF", 0, R.drawable.svg_pdf_icon),
-        FileInfo("other", "其他", 0, R.drawable.svg_file_unknown_icon),
+        FileInfo("image", GetProvider.get().context.getString(R.string.text_image), 0, R.drawable.svg_image_icon),
+        FileInfo("video", GetProvider.get().context.getString(R.string.text_video), 0, R.drawable.svg_media_icon),
+        FileInfo("music", GetProvider.get().context.getString(R.string.text_music), 0, R.drawable.svg_music_icon),
+        FileInfo("text", GetProvider.get().context.getString(R.string.text_txt), 0, R.drawable.svg_text_icon),
+        FileInfo("apk", GetProvider.get().context.getString(R.string.text_apk), 0, R.drawable.svg_apk_icon),
+        FileInfo("zip", GetProvider.get().context.getString(R.string.text_zip), 0, R.drawable.svg_zip_icon),
+        FileInfo("doc", GetProvider.get().context.getString(R.string.text_doc), 0, R.drawable.svg_word_icon),
+        FileInfo("exc", GetProvider.get().context.getString(R.string.text_exc), 0, R.drawable.svg_excel_icon),
+        FileInfo("ppt", GetProvider.get().context.getString(R.string.text_ppt), 0, R.drawable.svg_ppt_icon),
+        FileInfo("pdf", GetProvider.get().context.getString(R.string.text_pdf), 0, R.drawable.svg_pdf_icon),
+        FileInfo("other",
+            GetProvider.get().context.getString(R.string.text_other), 0, R.drawable.svg_file_unknown_icon),
     )
     val fileMap = hashMapOf(
         "image" to images,

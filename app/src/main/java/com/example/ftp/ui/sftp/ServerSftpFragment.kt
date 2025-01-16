@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
+import com.example.ftp.R
 import com.example.ftp.bean.ConnectInfo
 import com.example.ftp.databinding.FragmentServerSftpBinding
 import com.example.ftp.service.SftpServerService
@@ -57,7 +58,7 @@ class ServerSftpFragment : Fragment() {
         binding.layoutTitle.ivBack.setOnClickListener {
             findNavController().popBackStack()
         }
-        binding.layoutTitle.tvName.text = "服务端"
+        binding.layoutTitle.tvName.text = getString(R.string.text_server)
 
         initView()
 
@@ -79,7 +80,7 @@ class ServerSftpFragment : Fragment() {
                      }
                  }
             } else {
-                binding.tvCodeTip.text = "无法获取到IP"
+                binding.tvCodeTip.text = getString(R.string.text_not_obtain_ip)
                 binding.llServer.visibility = View.INVISIBLE
             }
         }
@@ -112,7 +113,7 @@ class ServerSftpFragment : Fragment() {
                     storagePermissionLauncher.launch(intent)
                 } catch (e: ActivityNotFoundException) {
                     e.printStackTrace()
-                    showToast("无法打开文件访问权限设置")
+                    showToast(getString(R.string.text_not_access_file_permission_settings))
                 }
             } else {
                 startFtpServer() // 权限已获取，启动 FTP 服务器

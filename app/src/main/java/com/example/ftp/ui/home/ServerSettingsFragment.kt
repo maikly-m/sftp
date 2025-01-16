@@ -15,7 +15,6 @@ import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.ftp.R
@@ -23,11 +22,8 @@ import com.example.ftp.bean.ConnectInfo
 import com.example.ftp.databinding.FragmentServerSettingsBinding
 import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.getLocalIpAddress
-import com.example.ftp.utils.grantCamera
 import com.example.ftp.utils.grantExternalStorage
-import com.example.ftp.utils.gson.GsonUtil
 import com.example.ftp.utils.isConnectedToWifi
-import com.example.ftp.utils.isIPAddress
 import com.example.ftp.utils.showToast
 import timber.log.Timber
 
@@ -53,7 +49,7 @@ class ServerSettingsFragment : Fragment() {
         binding.layoutTitle.ivBack.setOnClickListener {
             findNavController().popBackStack()
         }
-        binding.layoutTitle.tvName.text = "服务端"
+        binding.layoutTitle.tvName.text = getString(R.string.text_server)
 
         initView()
 
@@ -87,7 +83,8 @@ class ServerSettingsFragment : Fragment() {
                         storagePermissionLauncher.launch(intent)
                     } catch (e: ActivityNotFoundException) {
                         e.printStackTrace()
-                        showToast("无法打开文件访问权限设置")
+                        showToast(resources.getString(R.string.text_not_access_file_permission_settings))
+
                     }
                 } else {
                     configure()
@@ -145,7 +142,7 @@ class ServerSettingsFragment : Fragment() {
             val connectWifi = isConnectedToWifi(requireContext())
             val ip = getLocalIpAddress(requireContext())
             if (!connectWifi || ip == "0.0.0.0"){
-                showToast("没有连接到wifi")
+                showToast(getString(R.string.text_disconnect_wifi))
                 return@setOnClickListener
             }
 
@@ -163,13 +160,13 @@ class ServerSettingsFragment : Fragment() {
             )
 
             if (info.port < 2000) {
-                showToast("端口要大于2000")
+                showToast(getString(R.string.text_port_must_greater_than_2000))
             } else {
                 if (TextUtils.isEmpty(info.name)) {
-                    showToast("用户名不能为空")
+                    showToast(getString(R.string.text_user_name_can_not_null))
                 } else {
                     if (TextUtils.isEmpty(info.pw)) {
-                        showToast("密码不能为空")
+                        showToast(getString(R.string.text_pw_can_not_null))
                     } else {
                         MySPUtil.getInstance().serverConnectInfo = info
                         findNavController().navigate(R.id.action_server_settings2server_sftp)

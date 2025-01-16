@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:text="选择文件"
+            android:text="@string/text_select_file"
             android:textStyle="bold"
             android:textColor="@color/black"
             android:textSize="15sp" />
@@ -40,7 +40,7 @@
                 android:id="@+id/tv_sort"
                 android:layout_width="80dp"
                 android:layout_height="wrap_content"
-                android:text="按时间降序"
+                android:text="@string/text_sort_descendant_by_time"
                 android:textColor="@color/black"
                 android:textSize="14sp"
                 android:maxLines="1"
@@ -84,7 +84,7 @@
             android:id="@+id/tv_select_all"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="全选"
+            android:text="@string/text_all_select"
             android:textStyle="bold"
             android:textColor="@color/color_1296db"
             android:textSize="14sp" />
@@ -96,7 +96,7 @@
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="选择项目"
+            android:text="@string/text_item_select"
             android:textStyle="bold"
             android:textColor="@color/black"
             android:textSize="14sp" />
@@ -107,7 +107,7 @@
             android:id="@+id/tv_cancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="取消"
+            android:text="@string/text_cancel"
             android:textStyle="bold"
             android:textColor="@color/color_1296db"
             android:textSize="14sp" />

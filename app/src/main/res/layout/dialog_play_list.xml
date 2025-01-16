@@ -19,7 +19,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             android:id="@+id/tv_tile"
-            android:text="列表"
+            android:text="@string/text_list"
             android:gravity="center"
             android:textSize="16sp"
             android:textColor="@color/white"

@@ -10,6 +10,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
+import com.example.ftp.R
 import com.example.ftp.databinding.FragmentIntroduceBinding
 import com.example.ftp.utils.setStatusBarAndNavBar
 import org.jsoup.Jsoup
@@ -84,7 +85,7 @@ class IntroduceFragment : Fragment() {
         ivBack.setOnClickListener {
             findNavController().popBackStack()
         }
-        tvTitle.text = "使用说明"
+        tvTitle.text = getString(R.string.text_instruction)
     }
 
     override fun onResume() {

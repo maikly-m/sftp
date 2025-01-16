@@ -49,7 +49,7 @@ class ClientBrowserFragment : Fragment() {
         binding.layoutTitle.ivBack.setOnClickListener {
             findNavController().popBackStack()
         }
-        binding.layoutTitle.tvName.text = "文件"
+        binding.layoutTitle.tvName.text = getString(R.string.text_file)
 
 
         initView()
@@ -116,7 +116,7 @@ class ClientBrowserFragment : Fragment() {
                 binding.ivLocalFile.setRoundedCorners(DisplayUtils.dp2px(GetProvider.get().context, 5f).toFloat())
                 binding.ivLocalFile.setImageResource(item.icon)
                 binding.tvLocalFileName.text = item.name
-                binding.tvLocalFileCount.text = "${item.count}项"
+                binding.tvLocalFileCount.text = "${item.count}${getString(R.string.text_count)}"
 
                 binding.cv.setOnClickListener {
                     val bundle = Bundle()

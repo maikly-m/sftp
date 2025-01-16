@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:textColor="@color/color_434242"
-        android:text="没有更多了"
+        android:text="@string/text_no_more"
         android:textSize="18sp"/>
 
 </layout>

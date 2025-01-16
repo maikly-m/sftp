@@ -7,13 +7,11 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
-import android.text.InputType
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
@@ -55,7 +53,7 @@ class ClientSettingsFragment : Fragment() {
         binding.layoutTitle.ivBack.setOnClickListener {
             findNavController().popBackStack()
         }
-        binding.layoutTitle.tvName.text = "客户端"
+        binding.layoutTitle.tvName.text = getString(R.string.text_client)
 
         binding.layoutTitle.ivRight.visibility = View.VISIBLE
         binding.layoutTitle.ivRight.setImageResource(R.drawable.svg_more_icon)
@@ -96,7 +94,7 @@ class ClientSettingsFragment : Fragment() {
                         storagePermissionLauncher.launch(intent)
                     } catch (e: ActivityNotFoundException) {
                         e.printStackTrace()
-                        showToast("无法打开文件访问权限设置")
+                        showToast(getString(R.string.text_not_access_file_permission_settings))
                     }
                 } else {
                     configure()
@@ -196,13 +194,13 @@ class ClientSettingsFragment : Fragment() {
 
             if (isIPAddress(info.ip)){
                 if (info.port < 0) {
-                    showToast("端口要大于0")
+                    showToast(getString(R.string.text_port_greater_than_zero))
                 } else {
                     if (TextUtils.isEmpty(info.name)) {
-                        showToast("用户名不能为空")
+                        showToast(getString(R.string.text_user_name_can_not_null))
                     } else {
                         if (TextUtils.isEmpty(info.pw)) {
-                            showToast("密码不能为空")
+                            showToast(getString(R.string.text_pw_can_not_null))
                         } else {
                             MySPUtil.getInstance().clientConnectInfo = info
                             findNavController().navigate(R.id.action_client_settings2client_browser)
@@ -211,7 +209,7 @@ class ClientSettingsFragment : Fragment() {
                 }
 
             }else{
-                showToast("ip格式不正确")
+                showToast(getString(R.string.text_ip_format_incorrect))
             }
         }
 

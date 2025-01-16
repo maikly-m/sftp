@@ -73,7 +73,7 @@
                     android:layout_gravity="center"
                     android:layout_marginStart="2dp"
                     android:gravity="center"
-                    android:text="传输"
+                    android:text="@string/text_transfer"
                     android:textSize="12sp" />
             </LinearLayout>
 
@@ -99,7 +99,7 @@
                     android:layout_gravity="center"
                     android:layout_marginStart="2dp"
                     android:gravity="center"
-                    android:text="传输"
+                    android:text="@string/text_transfer"
                     android:textSize="12sp" />
             </LinearLayout>
             <LinearLayout
@@ -117,7 +117,7 @@
                     android:layout_gravity="center"
                     android:layout_marginStart="2dp"
                     android:gravity="center"
-                    android:text="传输"
+                    android:text="@string/text_transfer"
                     android:textSize="12sp" />
             </LinearLayout>
 
@@ -275,7 +275,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
-                    android:text="暂无传输任务"
+                    android:text="@string/text_none_transfer"
                     android:textSize="14sp" />
             </androidx.constraintlayout.widget.ConstraintLayout>
         </LinearLayout>

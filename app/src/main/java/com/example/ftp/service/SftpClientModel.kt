@@ -1,6 +1,7 @@
 package com.example.ftp.service
 
 import android.text.TextUtils
+import com.example.ftp.R
 import com.example.ftp.event.ClientMessageEvent
 import com.example.ftp.provider.GetProvider
 import com.jcraft.jsch.ChannelSftp
@@ -35,7 +36,7 @@ class SftpClientModel(val type: ClientType) {
     private var initLockInt = AtomicInteger(0)
     private val lock = Object()
 
-    fun isConnected() = channelSftp?.isConnected?:false
+    fun isConnected() = channelSftp?.isConnected ?: false
     fun isConnecting() = initLockInt.get() == 1
 
     fun connect(
@@ -83,8 +84,14 @@ class SftpClientModel(val type: ClientType) {
             session!!.connect()
             channelSftp = session!!.openChannel("sftp") as ChannelSftp
             channelSftp!!.connect()
-            if (!reconnect){
-                EventBus.getDefault().post(ClientMessageEvent.SftpConnected(type, "连接成功"))
+            if (!reconnect) {
+                EventBus.getDefault().post(
+                    ClientMessageEvent.SftpConnected(
+                        type, GetProvider.get().context.getString(
+                            R.string.text_connect_success
+                        )
+                    )
+                )
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -93,12 +100,29 @@ class SftpClientModel(val type: ClientType) {
             channelSftp = null
             session = null
             if (e is JSchException) {
-                if (e.cause?.message?.contains("java.net.SocketTimeoutException") == true){
-                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(type, "连接异常"))
-                }else if (e.cause?.message?.contains("java.net.NoRouteToHostException") == true) {
-                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(type, "连接的IP异常"))
-                }else{
-                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(type, "连接失败"))
+                if (e.cause?.message?.contains("java.net.SocketTimeoutException") == true) {
+                    EventBus.getDefault().post(
+                        ClientMessageEvent.SftpConnectFail(
+                            type,
+                            GetProvider.get().context.getString(
+                                R.string.text_connect_fail
+                            )
+                        )
+                    )
+                } else if (e.cause?.message?.contains("java.net.NoRouteToHostException") == true) {
+                    EventBus.getDefault().post(
+                        ClientMessageEvent.SftpConnectFail(
+                            type,
+                            GetProvider.get().context.getString(
+                                R.string.text_connect_ip_fail
+                            )
+                        )
+                    )
+                } else {
+                    EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(type,
+                        GetProvider.get().context.getString(
+                        R.string.text_connect_fail
+                    )))
                 }
             }
         } finally {
@@ -112,11 +136,16 @@ class SftpClientModel(val type: ClientType) {
         channelSftp = null
         session = null
         initLockInt.set(0)
-        EventBus.getDefault().post(ClientMessageEvent.SftpDisconnect(type, "连接断开"))
+        EventBus.getDefault().post(
+            ClientMessageEvent.SftpDisconnect(
+                type,
+                GetProvider.get().context.getString(R.string.text_disconnect)
+            )
+        )
     }
 
     private fun checkConnect(block: () -> Unit) {
-        synchronized(lock){
+        synchronized(lock) {
             if (initLockInt.get() != 0) {
                 Timber.d("init ...")
                 block()
@@ -214,7 +243,10 @@ class SftpClientModel(val type: ClientType) {
                         // check dir
                         Timber.d("uploadFileInputStream dst=${remoteFilePath}")
                         channelSftp?.let {
-                            ensureDirectoryExists(it, remoteFilePath.removeSuffix("/").substringBeforeLast("/"))
+                            ensureDirectoryExists(
+                                it,
+                                remoteFilePath.removeSuffix("/").substringBeforeLast("/")
+                            )
                         }
                         channelSftp?.put(inputStream, remoteFilePath, l)
                         continuation.resume(true)
@@ -231,6 +263,7 @@ class SftpClientModel(val type: ClientType) {
             }
         }
     }
+
     fun deleteFile(remotePath: String) {
         checkConnect {
             try {
@@ -242,6 +275,7 @@ class SftpClientModel(val type: ClientType) {
             }
         }
     }
+
     // 删除文件夹（删）
     fun deleteDir(remotePath: String) {
         checkConnect {
@@ -323,14 +357,14 @@ class SftpClientModel(val type: ClientType) {
                         Timber.d("downloadFile dst=${dst}")
                         val file = File(dst)
                         // 检查父目录是否存在，不存在则创建
-                        if (file.parentFile != null){
+                        if (file.parentFile != null) {
                             if (!file.parentFile!!.exists()) {
                                 val isDirCreated = file.parentFile!!.mkdirs()
                                 if (!isDirCreated) {
                                     // 无法创建
                                     continuation.resumeWithException(Throwable("无法创建父目录 ${dst}"))
                                     return@checkConnect
-                                }else{
+                                } else {
                                     // 创建文件
                                     if (!file.exists()) {
                                         val isFileCreated = file.createNewFile()
@@ -341,7 +375,7 @@ class SftpClientModel(val type: ClientType) {
                                         }
                                     }
                                 }
-                            }else{
+                            } else {
                                 // 创建文件
                                 if (!file.exists()) {
                                     val isFileCreated = file.createNewFile()
@@ -357,7 +391,7 @@ class SftpClientModel(val type: ClientType) {
                                 continuation.resume(true)
                             }
 
-                        }else{
+                        } else {
                             continuation.resumeWithException(Throwable("父目录不存在 ${dst}"))
                         }
                     } catch (e: SftpException) {
@@ -372,6 +406,7 @@ class SftpClientModel(val type: ClientType) {
             }
         }
     }
+
     // 下载文件
     suspend fun downloadFile(
         src: String,

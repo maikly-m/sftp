@@ -4,6 +4,8 @@ import android.os.Environment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.ftp.R
+import com.example.ftp.provider.GetProvider
 import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.showToast
 import com.example.ftp.utils.thread.SingleLiveEvent
@@ -29,12 +31,12 @@ class PickFilesViewModel : ViewModel() {
     val changeSelectType = SingleLiveEvent<Int>()
 
     val sortTypes = mutableListOf(
-        "按名称",
-        "按类型",
-        "按大小升序",
-        "按大小降序",
-        "按时间升序",
-        "按时间降序",
+        GetProvider.get().context.getString(R.string.text_sort_by_name),
+        GetProvider.get().context.getString(R.string.text_sort_by_type),
+        GetProvider.get().context.getString(R.string.text_sort_by_size),
+        GetProvider.get().context.getString(R.string.text_sort_descendant_by_size),
+        GetProvider.get().context.getString(R.string.text_sort_by_time),
+        GetProvider.get().context.getString(R.string.text_sort_descendant_by_time),
     )
 
     private val _listFileLoading = SingleLiveEvent<Int>()

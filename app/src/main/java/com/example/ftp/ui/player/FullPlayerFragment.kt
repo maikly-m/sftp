@@ -19,6 +19,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView.ControllerVisibilityListener
+import com.example.ftp.R
 import com.example.ftp.databinding.FragmentFullPlayerBinding
 import com.example.ftp.player.playSftpVideo
 import com.example.ftp.ui.dialog.PlayListDialog
@@ -69,7 +70,8 @@ class FullPlayerFragment : Fragment() {
         // 监听返回键操作
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             // 弹窗提示退出
-            showCustomAlertDialog(requireContext(), "提示","退出播放?", {
+            showCustomAlertDialog(requireContext(), getString(R.string.text_tip),
+                getString(R.string.text_quit_playing), {
                 // 取消
 
             }){

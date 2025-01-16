@@ -26,7 +26,7 @@
             android:layout_marginTop="8dp"
             android:textStyle="bold"
             tools:visibility="visible"
-            tools:text="消息标题"/>
+            tools:text="@string/text_msg_tile"/>
 
         <TextView
             android:id="@+id/tv_message"
@@ -40,7 +40,7 @@
             android:layout_marginTop="8dp"
             app:layout_constraintTop_toBottomOf="@+id/tv_title"
             app:layout_constraintStart_toStartOf="parent"
-            tools:text="消息内容"/>
+            tools:text="@string/text_msg_content"/>
 
         <Button
             android:id="@+id/positive"
@@ -51,7 +51,7 @@
             android:layout_marginBottom="10dp"
             android:layout_marginTop="2dp"
             android:padding="4dp"
-            android:text="确定"
+            android:text="@string/text_ok"
             android:textColor="@color/color_497DE3"
             android:background="@android:color/transparent"
             android:textSize="12sp" />
@@ -65,7 +65,7 @@
             android:layout_marginBottom="10dp"
             android:layout_marginEnd="10dp"
             android:padding="4dp"
-            android:text="取消"
+            android:text="@string/text_cancel"
             android:background="@android:color/transparent"
             android:textColor="@color/color_497DE3"
             android:textSize="12sp" />

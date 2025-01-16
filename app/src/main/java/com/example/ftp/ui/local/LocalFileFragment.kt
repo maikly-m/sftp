@@ -3,12 +3,10 @@ package com.example.ftp.ui.local
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.AlertDialog
-import android.content.ClipData.Item
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
 import android.os.IBinder
@@ -26,13 +24,9 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.MultiTransformation
-import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.target.Target
 import com.example.ftp.R
 import com.example.ftp.bean.FileInfo
 import com.example.ftp.databinding.FragmentLocalFileBinding
@@ -55,22 +49,16 @@ import com.example.ftp.ui.toReadableFileSizeFormat1
 import com.example.ftp.ui.view.GridSpacingItemDecoration
 import com.example.ftp.ui.view.SpaceItemDecoration
 import com.example.ftp.utils.DisplayUtils
-import com.example.ftp.utils.createFileWithPath
 import com.example.ftp.utils.formatTimeWithDay
 import com.example.ftp.utils.formatTimeWithSimpleDateFormat
 import com.example.ftp.utils.getIcon4File
 import com.example.ftp.utils.imageSuffixType
-import com.example.ftp.utils.normalizeFilePath
 import com.example.ftp.utils.openFileWithSystemApp
-import com.example.ftp.utils.removeFileExtension
-import com.example.ftp.utils.saveBitmapToFile
-import com.example.ftp.utils.saveDrawableAsJPG
 import com.example.ftp.utils.showCustomAlertDialog
 import com.example.ftp.utils.showCustomFileInfoDialog
 import com.example.ftp.utils.showToast
 import com.example.ftp.utils.sortFileTracks
 import com.example.ftp.utils.videoSuffixType
-import com.jcraft.jsch.ChannelSftp
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -109,7 +97,7 @@ class LocalFileFragment : Fragment() {
         val root: View = binding.root
 
         type = arguments?.getSerializable("type") as FileInfo
-        binding.layoutTitleFile.tvName.text = type?.name ?: "文件"
+        binding.layoutTitleFile.tvName.text = type?.name ?: getString(R.string.text_file)
 
         initView()
         initListener()
@@ -302,14 +290,14 @@ class LocalFileFragment : Fragment() {
         }
         viewModel.uploadFileInputStream.observe(viewLifecycleOwner) {
             if (it == 1) {
-                showToast("上传成功")
+                showToast(getString(R.string.text_upload_success))
                 // 刷新列表
             } else {
-                showToast("上传失败")
+                showToast(getString(R.string.text_upload_fail))
             }
 
             binding.cvLlSimpleUp.visibility = View.GONE
-            binding.cvLlSimpleUpTv.text = "传输"
+            binding.cvLlSimpleUpTv.text = getString(R.string.text_transfer)
             binding.tvTransferUpCount.text = "0/0"
             binding.tvTransferUpSize.text = "0/0"
             binding.tvTransferUpProgress.text = "0%"
@@ -326,7 +314,8 @@ class LocalFileFragment : Fragment() {
             val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive ?: false
             if (uploadActive) {
                 // 拦截任务
-                showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
+                showCustomAlertDialog(requireContext(), getString(R.string.text_tip),
+                    getString(R.string.text_uploading_and_exit_or_not), {
                     // cancel
                 }) {
                     // ok
@@ -342,17 +331,17 @@ class LocalFileFragment : Fragment() {
             // show select-all
             viewModel.showMultiSelectIcon.value = true
             viewModel.showSelectAll.value = false
-            binding.layoutTitleFile.tvSelectAll.text = "全选"
+            binding.layoutTitleFile.tvSelectAll.text = getString(R.string.text_all_select)
         }
 
         binding.layoutTitleFile.tvSelectAll.setOnClickListener {
             //select-all
             if (viewModel.showSelectAll.value == false) {
                 viewModel.showSelectAll.value = true
-                binding.layoutTitleFile.tvSelectAll.text = "取消全选"
+                binding.layoutTitleFile.tvSelectAll.text = getString(R.string.text_all_select_cancel)
             } else {
                 viewModel.showSelectAll.value = false
-                binding.layoutTitleFile.tvSelectAll.text = "全选"
+                binding.layoutTitleFile.tvSelectAll.text = getString(R.string.text_all_select)
             }
         }
 
@@ -376,7 +365,7 @@ class LocalFileFragment : Fragment() {
             val uploadActive = viewModel.getUploadFileInputStreamJob()?.isActive ?: false
             if (uploadActive) {
                 // 拦截任务
-                showCustomAlertDialog(requireContext(), "提示", "正在上传，是否退出", {
+                showCustomAlertDialog(requireContext(), getString(R.string.text_tip), getString(R.string.text_uploading_and_exit_or_not), {
                     // cancel
                 }) {
                     // ok
@@ -1160,7 +1149,8 @@ class LocalFileFragment : Fragment() {
                         var d:AlertDialog? = null
                         binding.cl.setOnClickListener {
                             // other
-                            d = showCustomFileInfoDialog(requireContext(), "文件信息") { b ->
+                            d = showCustomFileInfoDialog(requireContext(),
+                                getString(R.string.text_file_info)) { b ->
                                 b.ivName.setImageDrawable(
                                     getIcon4File(
                                         GetProvider.get().context,

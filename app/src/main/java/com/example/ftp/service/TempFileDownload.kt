@@ -1,5 +1,6 @@
 package com.example.ftp.service
 
+import com.example.ftp.R
 import com.example.ftp.provider.GetProvider
 import com.example.ftp.utils.ToastUtil
 import com.jcraft.jsch.ChannelSftp
@@ -14,10 +15,12 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-class TempFileDownload( private val host: String,
-                        private val port: Int,
-                        private val username: String,
-                        private val password: String) {
+class TempFileDownload(
+    private val host: String,
+    private val port: Int,
+    private val username: String,
+    private val password: String
+) {
 
     private var session: Session? = null
     private var channelSftp: ChannelSftp? = null
@@ -79,7 +82,8 @@ class TempFileDownload( private val host: String,
             channel.connect()
             channelSftp = channel
         } catch (e: Exception) {
-            ToastUtil.tempSftpPlayerErrorToast = "连接服务器失败"
+            ToastUtil.tempSftpPlayerErrorToast =
+                GetProvider.get().context.getString(R.string.text_fail_to_connect_server)
             // EventBus.getDefault().post(ClientMessageEvent.SftpConnectFail(ClientType.PlayerClient, ""))
             throw RuntimeException("Error connecting to SFTP server", e)
         }
@@ -90,7 +94,8 @@ class TempFileDownload( private val host: String,
             session?.disconnect()
             channelSftp?.disconnect()
         } catch (e: Exception) {
-            ToastUtil.tempSftpPlayerErrorToast = "服务器连接断开"
+            ToastUtil.tempSftpPlayerErrorToast =
+                GetProvider.get().context.getString(R.string.text_disconnect_server)
             // EventBus.getDefault().post(ClientMessageEvent.SftpDisconnect(ClientType.PlayerClient, ""))
             throw RuntimeException("Error disconnect to SFTP server", e)
         }

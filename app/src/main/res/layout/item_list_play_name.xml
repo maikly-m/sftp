@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:gravity="start"
             android:layout_marginHorizontal="10dp"
-            tools:text="未知文件"
+            tools:text="@string/text_unknown_file"
             android:maxLines="1"
             android:ellipsize="end"
             android:textColor="@color/white"

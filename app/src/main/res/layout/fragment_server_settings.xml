@@ -26,7 +26,7 @@
             android:id="@+id/tv_port"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="端口"
+            android:text="@string/text_port"
             android:textColor="@color/color_383838"
             android:textSize="14sp" />
         <LinearLayout
@@ -64,7 +64,7 @@
             android:id="@+id/tv_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="用户名"
+            android:text="@string/text_user_name"
             android:textColor="@color/color_383838"
             android:textSize="14sp" />
         <LinearLayout
@@ -102,7 +102,7 @@
             android:id="@+id/tv_pw"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="密码"
+            android:text="@string/text_pw"
             android:textColor="@color/color_383838"
             android:textSize="14sp" />
         <LinearLayout
@@ -146,7 +146,7 @@
             android:layout_marginTop="10dp"
             android:gravity="center"
             android:id="@+id/tv_start"
-            android:text="启动"
+            android:text="@string/text_start"
             android:paddingHorizontal="5dp"
             android:textStyle="bold"
             android:textColor="@color/white"

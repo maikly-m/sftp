@@ -15,6 +15,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
+import com.example.ftp.R
 import com.example.ftp.utils.ToastUtil
 import com.example.ftp.utils.showToast
 import timber.log.Timber
@@ -78,7 +79,7 @@ fun playSftpVideo(
                                 showToast(ToastUtil.tempSftpPlayerErrorToast)
                                 ToastUtil.tempSftpPlayerErrorToast = ""
                             } else {
-                                showToast("文件不存在或格式不支持")
+                                showToast(context.getString(R.string.text_file_not_exist_or_format_unsupported))
                             }
                             exoPlayer.seekToNextMediaItem()
 

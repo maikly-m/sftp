@@ -34,7 +34,7 @@ class HomeFragment : Fragment() {
         val root: View = binding.root
 
         binding.layoutTitle.ivBack.visibility = View.GONE
-        binding.layoutTitle.tvName.text = "文件传输"
+        binding.layoutTitle.tvName.text = getString(R.string.text_file_transfer)
 
         binding.layoutTitle.ivRight.visibility = View.VISIBLE
         binding.layoutTitle.ivRight.setImageResource(R.drawable.svg_introduce_icon)

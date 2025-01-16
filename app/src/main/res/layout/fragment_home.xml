@@ -48,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="20sp"
                 android:textColor="@color/color_434242"
-                android:text="文件客户端" />
+                android:text="@string/text_file_client" />
 
         </LinearLayout>
 
@@ -82,7 +82,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="20sp"
                 android:textColor="@color/color_434242"
-                android:text="文件服务端" />
+                android:text="@string/text_file_server" />
 
         </LinearLayout>
     </LinearLayout>

@@ -1,7 +1,6 @@
 package com.example.ftp.ui.home
 
 import android.os.Bundle
-import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,12 +8,12 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
+import com.example.ftp.R
 import com.example.ftp.databinding.FragmentClientSettingsMoreBinding
 import com.example.ftp.ui.MainViewModel
 import com.example.ftp.utils.MySPUtil
 import com.example.ftp.utils.isFolderNameValid
 import com.example.ftp.utils.isFullFolderNameValid
-import com.example.ftp.utils.normalizeFilePath
 import com.example.ftp.utils.replaceCursorStyle
 import com.example.ftp.utils.showToast
 import timber.log.Timber
@@ -42,7 +41,7 @@ class ClientSettingsMoreFragment : Fragment() {
         binding.layoutTitle.ivBack.setOnClickListener {
             findNavController().popBackStack()
         }
-        binding.layoutTitle.tvName.text = "设置"
+        binding.layoutTitle.tvName.text = getString(R.string.text_settings)
 
         // 替换闪烁的cursor
         replaceCursorStyle(requireContext(), binding.etSavePath)
@@ -85,7 +84,7 @@ class ClientSettingsMoreFragment : Fragment() {
         if (isFullFolderNameValid(viewModel.etUploadPath)) {
             if (viewModel.etUploadPath == "/") {
                 MySPUtil.getInstance().uploadSavePath = viewModel.etUploadPath
-                showToast("已保存")
+                showToast(getString(R.string.text_save))
                 return true
             }
             val path: String
@@ -100,20 +99,20 @@ class ClientSettingsMoreFragment : Fragment() {
                 Timber.d("paths it=${p}")
                 isFolderNameValid(p).run {
                     if (!this) {
-                        showToast("上传路径不合法，请修改")
+                        showToast(getString(R.string.text_upload_path_illegal))
                         return false
                     }
                 }
             }
             if (paths.isEmpty()) {
-                showToast("上传路径不合法，请修改")
+                showToast(getString(R.string.text_upload_path_illegal))
             } else {
                 MySPUtil.getInstance().uploadSavePath = viewModel.etUploadPath
-                showToast("已保存")
+                showToast(getString(R.string.text_save))
                 return true
             }
         } else {
-            showToast("上传路径不合法，请修改")
+            showToast(getString(R.string.text_upload_path_illegal))
         }
         return false
 
@@ -142,13 +141,13 @@ class ClientSettingsMoreFragment : Fragment() {
                 Timber.d("paths it=${p}")
                 isFolderNameValid(p).run {
                     if (!this) {
-                        showToast("下载路径不合法，请修改")
+                        showToast(getString(R.string.text_download_path_illegal))
                         return false
                     }
                 }
             }
             if (paths.isEmpty()) {
-                showToast("下载路径不合法，请修改")
+                showToast(getString(R.string.text_download_path_illegal))
             } else {
                 MySPUtil.getInstance().downloadSavePath = viewModel.etSavePath
                 // 修改监听位置
@@ -156,7 +155,7 @@ class ClientSettingsMoreFragment : Fragment() {
                 return true
             }
         } else {
-            showToast("下载路径不合法，请修改")
+            showToast(getString(R.string.text_download_path_illegal))
         }
         return false
     }
