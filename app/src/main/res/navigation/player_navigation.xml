@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/navigation_full_player"
-        android:name="com.example.ftp.ui.player.FullPlayerFragment"
+        android:name="com.emoji.ftp.ui.player.FullPlayerFragment"
         tools:layout="@layout/fragment_full_player" >
 
     </fragment>

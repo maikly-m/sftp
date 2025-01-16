@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.ftp"
+    namespace = "com.emoji.ftp"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.ftp"
+        applicationId = "com.emoji.ftp"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
