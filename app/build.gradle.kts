@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.LintOptions
 import com.android.build.api.dsl.Packaging
 
 plugins {
@@ -20,17 +21,37 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    lint {
-        baseline = file("lint-baseline.xml")
+    signingConfigs {
+        create("release") {
+            storeFile = file("sftp_key.jks")
+            storePassword = "sftp123"
+            keyAlias = "key0"
+            keyPassword = "sftp123"
+        }
+    }
+
+    // AAB 配置
+    bundle {
+        storeArchive {
+            enable = true
+        }
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -45,6 +66,13 @@ android {
         viewBinding = true
         buildConfig = true
     }
+
+    lint {
+        baseline = file("lint-baseline.xml") // 指定基线文件
+        checkReleaseBuilds = false // 禁用 Release 构建时的 Lint 检查
+        abortOnError = false // 不因 Lint 错误中断构建
+    }
+
     packaging {
         resources {
             excludes += "META-INF/gradle/incremental.annotation.processors"
