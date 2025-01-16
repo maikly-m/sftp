@@ -924,6 +924,12 @@ class ClientSftpFragment : Fragment() {
                                             sftpPassword = info.pw,
                                             videoPath = MutableList(1){path}
                                         )
+                                        // 按照类型显示模式
+                                        if (extend in musicSuffixType) {
+                                            b.llMusicPlay.visibility = View.VISIBLE
+                                        } else {
+                                            b.llMusicPlay.visibility = View.GONE
+                                        }
                                         b.ivClose.setOnClickListener {
                                             // 关闭
                                             player.stop()

@@ -8,6 +8,7 @@ import java.util.ArrayList
 
 class FullPlayerViewModel : ViewModel() {
 
+    val mediaTypeChange = SingleLiveEvent<Int>()
     val loading = SingleLiveEvent<Boolean>()
     val seekPos = SingleLiveEvent<Int>()
     var playList: ArrayList<String>? = null

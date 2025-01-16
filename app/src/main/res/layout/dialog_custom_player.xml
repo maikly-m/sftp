@@ -43,6 +43,8 @@
         android:layout_height="40dp"
         android:padding="10dp"/>
 
+
+
     <androidx.media3.ui.PlayerView
         app:layout_constraintTop_toBottomOf="@+id/tv_title"
         app:layout_constraintEnd_toEndOf="parent"
@@ -57,7 +59,33 @@
         android:id="@+id/playerView"
         android:layout_width="match_parent"
         android:layout_height="200dp"/>
-
+    <LinearLayout
+        android:visibility="gone"
+        android:id="@+id/ll_music_play"
+        app:layout_constraintEnd_toEndOf="@+id/playerView"
+        app:layout_constraintStart_toStartOf="@+id/playerView"
+        app:layout_constraintTop_toTopOf="@+id/playerView"
+        app:layout_constraintBottom_toBottomOf="@+id/playerView"
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:layout_gravity="center"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:padding="8dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/svg_music_loading" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="音乐"
+            android:textColor="@color/white"
+            android:textSize="16sp" />
+    </LinearLayout>
     <androidx.constraintlayout.widget.ConstraintLayout
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="@+id/playerView"

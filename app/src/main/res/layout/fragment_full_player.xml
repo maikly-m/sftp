@@ -24,6 +24,34 @@
         android:layout_height="40dp"
         android:src="@drawable/svg_list_icon" />
 
+    <LinearLayout
+        android:visibility="gone"
+        android:id="@+id/ll_music_play"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:layout_gravity="center"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:padding="8dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@drawable/svg_music_loading" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="音乐"
+            android:textColor="@color/white"
+            android:textSize="16sp" />
+    </LinearLayout>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"

@@ -1,7 +1,6 @@
 package com.example.ftp.ui.player
 
 import android.content.Context
-import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.net.ConnectivityManager
 import android.net.Network
@@ -15,31 +14,21 @@ import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView.ControllerVisibilityListener
-import androidx.recyclerview.widget.RecyclerView
-import com.example.ftp.R
 import com.example.ftp.databinding.FragmentFullPlayerBinding
-import com.example.ftp.databinding.ItemListFileBinding
 import com.example.ftp.player.playSftpVideo
-import com.example.ftp.provider.GetProvider
 import com.example.ftp.ui.dialog.PlayListDialog
-import com.example.ftp.ui.dialog.ProgressDialog
-import com.example.ftp.ui.toReadableFileSize
 import com.example.ftp.utils.MySPUtil
-import com.example.ftp.utils.formatTimeWithSimpleDateFormat
-import com.example.ftp.utils.getIcon4File
-import com.example.ftp.utils.normalizeFilePath
+import com.example.ftp.utils.musicSuffixType
 import com.example.ftp.utils.recover
 import com.example.ftp.utils.setFullScreen
 import com.example.ftp.utils.showCustomAlertDialog
-import com.example.ftp.utils.showCustomFileInfoDialog
-import com.example.ftp.utils.showCustomPlayerDialog
-import com.jcraft.jsch.ChannelSftp
+import com.example.ftp.utils.videoSuffixType
 import timber.log.Timber
-import java.util.Vector
 
 class FullPlayerFragment : Fragment() {
 
@@ -194,6 +183,20 @@ class FullPlayerFragment : Fragment() {
                     Player.STATE_READY -> {
                         // Player 已准备好，可能会开始播放
                         viewModel.loading.postValue(false)
+
+                        val size = viewModel.playList?.size?:0
+                        if (player.currentMediaItemIndex < size ){
+                            val p = viewModel.playList!![player.currentMediaItemIndex]
+                            // 通过文件名来识别
+                            p.substringAfterLast(".", "").let {
+                                if (it in videoSuffixType){
+                                    viewModel.mediaTypeChange.postValue(1)
+                                }else if (it in musicSuffixType) {
+                                    viewModel.mediaTypeChange.postValue(0)
+                                }
+                            }
+                        }
+
                         Timber.d("ExoPlayer is ready")
                     }
                     Player.STATE_ENDED -> {
@@ -224,6 +227,15 @@ class FullPlayerFragment : Fragment() {
                 val currentItem = player.currentMediaItem
                 Timber.d("Current MediaItem: ${currentItem?.mediaId}")
 
+                // 获取并判断媒体类型
+                val mimeType = currentItem?.mediaMetadata?.mediaType?:-1
+                if (mimeType == MediaMetadata.MEDIA_TYPE_MUSIC) {
+                    Timber.d("ExoPlayer, 正在播放音频")
+                    viewModel.loading.postValue(false)
+                } else if (mimeType == MediaMetadata.MEDIA_TYPE_VIDEO) {
+                    Timber.d("ExoPlayer, 正在播放视频")
+                }
+                viewModel.mediaTypeChange.postValue(mimeType)
                 viewModel.index = currentIndex
             }
 
@@ -256,6 +268,16 @@ class FullPlayerFragment : Fragment() {
                 binding.clLoading.visibility = View.VISIBLE
             } else {
                 binding.clLoading.visibility = View.GONE
+            }
+        }
+        viewModel.mediaTypeChange.observe(viewLifecycleOwner){
+            // play
+            if (it == 1) {
+                binding.llMusicPlay.visibility = View.GONE
+            } else if (it == 0){
+                binding.llMusicPlay.visibility = View.VISIBLE
+            }else{
+                binding.llMusicPlay.visibility = View.GONE
             }
         }
     }
