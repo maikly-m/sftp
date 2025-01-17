@@ -1,5 +1,3 @@
-import com.android.build.api.dsl.LintOptions
-import com.android.build.api.dsl.Packaging
 import com.android.build.api.variant.impl.VariantOutputImpl
 import java.time.Instant
 import java.time.ZoneOffset
