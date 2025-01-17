@@ -32,7 +32,7 @@ class SftpClientService : Service() {
         val notification: Notification = Notification.Builder(this, MY_CHANNEL_ID)
             .setContentTitle("File Transfer Client")
             .setContentText("Running in the background")
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.mipmap.app_sftp_icon)
             .build()
 
         // 将服务设置为前台服务

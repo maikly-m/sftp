@@ -8,12 +8,14 @@ barcodeScanning = "17.3.0"
 commonsNet = "3.9.0"
 compressor = "3.0.1"
 eventbus = "3.3.1"
+# firebaseBom = "33.8.0" 版本要和kotlin对应
+firebaseBom = "30.1.0"
 ftpserverCore = "1.2.0"
 jsch = "0.1.55"
 materialDialogsCore = "3.3.0"
 glide = "4.15.1"
 jsoup = "1.15.3"
-media3Exoplayer = "1.5.0"
+media3Exoplayer = "1.5.1"
 minaCore = "2.1.6"
 roomRuntime = "2.6.1"
 slf4jApi = "2.0.9"
@@ -31,8 +33,8 @@ material = "1.12.0"
 constraintlayout = "2.2.0"
 lifecycleLivedataKtx = "2.8.7"
 lifecycleViewmodelKtx = "2.8.7"
-navigationFragmentKtx = "2.8.4"
-navigationUiKtx = "2.8.4"
+navigationFragmentKtx = "2.8.5"
+navigationUiKtx = "2.8.5"
 permissionx = "1.8.1"
 retrofit = "2.11.0"
 retrofitConverterGson = "2.9.0"
@@ -45,7 +47,7 @@ cameraCamera2 = "1.4.1"
 cameraCore = "1.4.1"
 cameraLifecycle = "1.4.1"
 lottie = "6.0.0"
-activity = "1.9.3"
+activity = "1.10.0"
 
 [libraries]
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
@@ -63,6 +65,9 @@ androidpicker-common = { module = "com.github.gzu-liyujiang.AndroidPicker:Common
 androidpicker-wheelpicker = { module = "com.github.gzu-liyujiang.AndroidPicker:WheelPicker", version.ref = "androidPickerWheelPicker" }
 commons-net = { module = "commons-net:commons-net", version.ref = "commonsNet" }
 eventbus = { module = "org.greenrobot:eventbus", version.ref = "eventbus" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 ftpserver-core = { module = "org.apache.ftpserver:ftpserver-core", version.ref = "ftpserverCore" }
 jsch = { module = "com.jcraft:jsch", version.ref = "jsch" }
 mina-core = { module = "org.apache.mina:mina-core", version.ref = "minaCore" }

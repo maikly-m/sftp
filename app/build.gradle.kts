@@ -1,10 +1,16 @@
 import com.android.build.api.dsl.LintOptions
 import com.android.build.api.dsl.Packaging
+import com.android.build.api.variant.impl.VariantOutputImpl
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     kotlin("kapt")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -16,7 +22,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,7 +52,8 @@ android {
             )
         }
         release {
-            isMinifyEnabled = false
+            isShrinkResources = true
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -77,6 +84,25 @@ android {
         resources {
             excludes += "META-INF/gradle/incremental.annotation.processors"
             excludes += "META-INF/DEPENDENCIES"
+        }
+    }
+
+
+    // 获取 UTC 时间并格式化为 "yyyyMMdd" 格式
+    val time =
+        DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC).format(Instant.now())
+    androidComponents {
+        onVariants { variant ->
+            println("onVariants name: ${variant.name}")
+            variant.outputs.forEach { output ->
+                if (output is VariantOutputImpl){
+                    println("outputFileName = ${output.outputFileName.get()}")
+                    val substringAfterLast = output.outputFileName.get().substringAfterLast('.')
+                    println("substringAfterLast = $substringAfterLast")
+                    val newFileName = "app-${android.defaultConfig.versionName}-${android.defaultConfig.versionCode}-${time}-${variant.name}.${substringAfterLast}"
+                    output.outputFileName = newFileName
+                }
+            }
         }
     }
 
@@ -112,16 +138,16 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
     implementation(libs.compressor)
-    implementation(libs.material.dialogs.core)
-    implementation(libs.androidpicker.common)
-    implementation(libs.androidpicker.wheelpicker)
+//    implementation(libs.material.dialogs.core)
+//    implementation(libs.androidpicker.common)
+//    implementation(libs.androidpicker.wheelpicker)
 //    implementation(libs.mlkit.barcode.scanning)
-    implementation(libs.androidx.camera.core)
-    implementation(libs.androidx.camera.view)
-    implementation(libs.androidx.camera.lifecycle)
-    implementation(libs.androidx.camera.camera2)
+//    implementation(libs.androidx.camera.core)
+//    implementation(libs.androidx.camera.view)
+//    implementation(libs.androidx.camera.lifecycle)
+//    implementation(libs.androidx.camera.camera2)
     implementation(libs.lottie)
-    implementation(libs.androidx.viewpager2)
+//    implementation(libs.androidx.viewpager2)
 
     implementation(libs.androidx.room.runtime)
     kapt(libs.androidx.room.compiler)
@@ -142,6 +168,9 @@ dependencies {
     // debug的时候导入，需要日志
 //    debugImplementation(libs.slf4j.api) // SLF4J API
 //    debugImplementation(libs.slf4j.simple)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
