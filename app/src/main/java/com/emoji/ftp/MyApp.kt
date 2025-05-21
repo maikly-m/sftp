@@ -1,6 +1,7 @@
 package com.emoji.ftp
 
 import android.app.Application
+import com.emoji.ftp.nativeLib.NativeLib
 import timber.log.Timber
 
 class MyApp:Application() {
@@ -19,5 +20,8 @@ class MyApp:Application() {
             Timber.e("UncaughtException, Thread: ${thread.name}, Error: ${throwable.message}")
 
         }
+
+        Timber.d("NativeLib().nativeFunc() %s",NativeLib().nativeFunc())
+
     }
 }

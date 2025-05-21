@@ -7,10 +7,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.emoji.ftp.R
 import com.emoji.ftp.databinding.FragmentHomeBinding
 import com.emoji.ftp.utils.setStatusBarAndNavBar
+import timber.log.Timber
 
 class HomeFragment : Fragment() {
 
@@ -33,7 +35,7 @@ class HomeFragment : Fragment() {
 
         binding.layoutTitle.ivBack.visibility = View.GONE
         binding.layoutTitle.tvName.text = getString(R.string.text_file_transfer)
-
+        Timber.d("onCreateView ..")
         binding.layoutTitle.ivRight.visibility = View.VISIBLE
         binding.layoutTitle.ivRight.setImageResource(R.drawable.svg_introduce_icon)
         binding.layoutTitle.ivRight.setOnClickListener {

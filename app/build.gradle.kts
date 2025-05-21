@@ -23,7 +23,40 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+                cppFlags += listOf(
+                    "-std=c++20",
+                    "-frtti",
+                    "-fexceptions",
+                    "-fPIC"
+                )
+                cFlags += listOf(
+                    "-std=c11",
+                    "-Wall",
+                    "-ffast-math",
+                    "-fPIC"
+                )
+
+                abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            }
+        }
+
+        ndk{
+            abiFilters.add("armeabi-v7a")
+            abiFilters.add("arm64-v8a")
+        }
     }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.31.5"
+        }
+    }
+    ndkVersion = "28.1.13356709"
 
     signingConfigs {
         create("release") {
