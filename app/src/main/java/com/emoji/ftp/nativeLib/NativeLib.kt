@@ -8,4 +8,7 @@ class NativeLib {
     }
 
     external fun nativeFunc(): Int
+
+
+    external fun nativeAAudioTest(): Int
 }

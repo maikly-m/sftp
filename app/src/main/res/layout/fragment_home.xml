@@ -85,6 +85,39 @@
                 android:text="@string/text_file_server" />
 
         </LinearLayout>
+        <LinearLayout
+            android:layout_gravity="center"
+            android:paddingVertical="5dp"
+            android:paddingHorizontal="25dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_ripple_white_4_corner"
+            android:id="@+id/ll_test"
+            app:layout_constraintTop_toBottomOf="@+id/ll_client"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:orientation="horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:padding="4dp"
+                android:id="@+id/iv_test"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/svg_server_icon" />
+
+            <TextView
+                android:layout_marginStart="10dp"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:id="@+id/tv_test"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:textColor="@color/color_434242"
+                android:text="test" />
+
+        </LinearLayout>
     </LinearLayout>
 
 

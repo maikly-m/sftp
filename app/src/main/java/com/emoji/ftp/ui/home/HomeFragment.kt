@@ -50,6 +50,10 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.action_home2client_settings)
         }
 
+        binding.llTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home2test)
+        }
+
         return root
     }
 

@@ -21,7 +21,5 @@ class MyApp:Application() {
 
         }
 
-        Timber.d("NativeLib().nativeFunc() %s",NativeLib().nativeFunc())
-
     }
 }

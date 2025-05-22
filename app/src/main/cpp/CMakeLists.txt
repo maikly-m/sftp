@@ -1,21 +1,22 @@
-cmake_minimum_required(VERSION 3.10.2)
+cmake_minimum_required(VERSION 3.14)
 project(test)
 
+add_subdirectory(aaudio)
+add_subdirectory(oboe)
 
 add_library(test SHARED
         main.h
         Java_com_emoji_ftp_nativeLib_NativeLib.h
+        Java_com_emoji_ftp_nativeLib_OboeTest.h
 
         main.cpp
         Java_com_emoji_ftp_nativeLib_NativeLib.cpp
-)
-
-target_include_directories(test
-        PUBLIC
-        ${CMAKE_CURRENT_LIST_DIR}
+        Java_com_emoji_ftp_nativeLib_OboeTest.cpp
 )
 
 target_link_libraries(
         test
-        android
-        log)
+        PUBLIC
+        myaaudio
+        myoboe
+        PRIVATE android log)
